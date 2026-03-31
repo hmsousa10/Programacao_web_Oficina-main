@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGO – Viaturas</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="app-layout">
+
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🔧</div>
+        <div class="logo-text">SGO<div class="logo-subtitle">Gestão de Oficina</div></div>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">Principal</li>
+      <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+      <li class="nav-section-label">Gestão</li>
+      <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
+      <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
+      <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
+      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span class="theme-toggle-icon">☀️</span>
+      <label class="theme-switch" title="Alternar tema claro/escuro">
+        <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
+        <span class="theme-slider"></span>
+      </label>
+      <span class="theme-toggle-icon">🌙</span>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="user-name" id="sidebar-name">Utilizador</span>
+          <span class="user-role" id="sidebar-role">—</span>
+        </div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm w-full" onclick="logout()">🚪 Sair</button>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <div class="main-content">
+    <header class="page-header">
+      <div class="page-header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div>
+          <h1 class="page-title">🚗 Viaturas</h1>
+          <p class="page-subtitle" id="viatura-count">—</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary" onclick="openCreateViatura()">+ Nova Viatura</button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- Search -->
+      <div class="section">
+        <div class="search-bar" style="max-width:400px">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Pesquisar por matrícula, marca, modelo…"
+                 oninput="handleSearch(this.value)">
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Matrícula</th>
+              <th>Marca</th>
+              <th>Modelo</th>
+              <th>Ano</th>
+              <th>Combustível</th>
+              <th>Cliente</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="viaturas-tbody">
+            <tr><td colspan="7" class="text-center" style="padding:2rem">
+              <div class="spinner"></div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ── Panel: Detalhes Viatura ── -->
+  <div id="panel-viatura" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title" id="panel-viatura-title">Detalhes da Viatura</h3>
+        <button class="modal-close" onclick="hideModal('panel-viatura')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="panel-viatura-content">—</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('panel-viatura')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Criar / Editar Viatura ── -->
+  <div id="modal-viatura" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-viatura-title">Nova Viatura</h3>
+        <button class="modal-close" onclick="hideModal('modal-viatura')">✕</button>
+      </div>
+      <form id="form-viatura" onsubmit="submitViatura(event)">
+        <div class="modal-body">
+          <input type="hidden" id="viatura-id">
+
+          <div class="form-group">
+            <label for="viat-cliente">Cliente *</label>
+            <select id="viat-cliente" required>
+              <option value="">Selecionar cliente…</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="viat-matricula">Matrícula *</label>
+              <input type="text" id="viat-matricula" required placeholder="AA-00-BB"
+                     style="text-transform:uppercase">
+            </div>
+            <div class="form-group">
+              <label for="viat-vin">VIN / Chassis</label>
+              <input type="text" id="viat-vin" placeholder="WBA…">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="viat-marca">Marca *</label>
+              <input type="text" id="viat-marca" required placeholder="BMW">
+            </div>
+            <div class="form-group">
+              <label for="viat-modelo">Modelo *</label>
+              <input type="text" id="viat-modelo" required placeholder="320d">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="viat-ano">Ano</label>
+              <input type="number" id="viat-ano" min="1900" max="2099" placeholder="2020">
+            </div>
+            <div class="form-group">
+              <label for="viat-combustivel">Combustível</label>
+              <select id="viat-combustivel">
+                <option value="">Selecionar…</option>
+                <option value="GASOLINA">Gasolina</option>
+                <option value="GASÓLEO">Gasóleo</option>
+                <option value="HIBRIDO">Híbrido</option>
+                <option value="ELETRICO">Elétrico</option>
+                <option value="GAS">Gás</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="viat-km">Quilometragem</label>
+              <input type="number" id="viat-km" min="0" placeholder="50000">
+            </div>
+            <div class="form-group">
+              <label for="viat-cor">Cor</label>
+              <input type="text" id="viat-cor" placeholder="Preto">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="viat-obs">Observações</label>
+            <textarea id="viat-obs" rows="2" placeholder="Notas…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-viatura')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/viaturas.js"></script>
+</body>
+</html>

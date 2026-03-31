@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGO – Logs</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="app-layout">
+
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🔧</div>
+        <div class="logo-text">SGO<div class="logo-subtitle">Gestão de Oficina</div></div>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">Principal</li>
+      <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+      <li class="nav-section-label">Gestão</li>
+      <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
+      <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
+      <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
+      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span class="theme-toggle-icon">☀️</span>
+      <label class="theme-switch" title="Alternar tema claro/escuro">
+        <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
+        <span class="theme-slider"></span>
+      </label>
+      <span class="theme-toggle-icon">🌙</span>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="user-name" id="sidebar-name">Utilizador</span>
+          <span class="user-role" id="sidebar-role">—</span>
+        </div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm w-full" onclick="logout()">🚪 Sair</button>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <div class="main-content">
+    <header class="page-header">
+      <div class="page-header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div>
+          <h1 class="page-title">📋 Logs de Atividade</h1>
+          <p class="page-subtitle" id="log-count">A carregar…</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-secondary btn-sm" onclick="loadLogs()">🔄 Atualizar</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="clearLogs()">🗑️ Limpar Logs</button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- Summary Stats -->
+      <div class="logs-summary" id="logs-summary"></div>
+
+      <!-- Filters -->
+      <div class="logs-toolbar">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="log-search" placeholder="Pesquisar nos logs…" oninput="filterLogs()">
+        </div>
+        <select id="log-filter-severity" onchange="filterLogs()">
+          <option value="">Todos os níveis</option>
+          <option value="INFO">Info</option>
+          <option value="SUCCESS">Sucesso</option>
+          <option value="WARNING">Aviso</option>
+          <option value="ERROR">Erro</option>
+          <option value="DEBUG">Debug</option>
+        </select>
+        <select id="log-filter-source" onchange="filterLogs()">
+          <option value="">Todas as origens</option>
+          <option value="AUTH">Autenticação</option>
+          <option value="CLIENTES">Clientes</option>
+          <option value="VIATURAS">Viaturas</option>
+          <option value="REPARACOES">Reparações</option>
+          <option value="PECAS">Peças</option>
+          <option value="AGENDA">Agenda</option>
+          <option value="SISTEMA">Sistema</option>
+        </select>
+      </div>
+
+      <!-- Logs Table -->
+      <section class="section">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Nível</th>
+                <th>Origem</th>
+                <th>Utilizador</th>
+                <th>Mensagem</th>
+              </tr>
+            </thead>
+            <tbody id="logs-tbody">
+              <tr>
+                <td colspan="5" class="text-center" style="padding:2rem">
+                  <div class="spinner"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="js/utils.js" defer></script>
+  <script src="js/api.js"   defer></script>
+  <script src="js/auth.js"  defer></script>
+  <script src="js/logs.js"  defer></script>
+</body>
+</html>

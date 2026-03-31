@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGO – Reparações</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="app-layout">
+
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🔧</div>
+        <div class="logo-text">SGO<div class="logo-subtitle">Gestão de Oficina</div></div>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">Principal</li>
+      <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+      <li class="nav-section-label">Gestão</li>
+      <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
+      <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
+      <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
+      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span class="theme-toggle-icon">☀️</span>
+      <label class="theme-switch" title="Alternar tema claro/escuro">
+        <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
+        <span class="theme-slider"></span>
+      </label>
+      <span class="theme-toggle-icon">🌙</span>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="user-name" id="sidebar-name">Utilizador</span>
+          <span class="user-role" id="sidebar-role">—</span>
+        </div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm w-full" onclick="logout()">🚪 Sair</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <header class="page-header">
+      <div class="page-header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div>
+          <h1 class="page-title">🔩 Reparações</h1>
+          <p class="page-subtitle" id="rep-count">—</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary" onclick="openCreateReparacao()">+ Nova Reparação</button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <div class="section d-flex gap-2" style="flex-wrap:wrap; align-items:center">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Pesquisar por matrícula, cliente…"
+                 oninput="handleSearch(this.value)">
+        </div>
+        <select id="filter-estado" class="btn btn-secondary btn-sm" onchange="applyFilters()"
+                style="padding:.45rem .75rem; min-width:160px">
+          <option value="">Todos os estados</option>
+          <option value="PENDENTE">Pendente</option>
+          <option value="EM_EXECUCAO">Em Execução</option> <option value="AGUARDA_PECAS">Aguarda Peças</option>
+          <option value="CONCLUIDA">Concluída</option>
+          <option value="CANCELADA">Cancelada</option>
+        </select>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Viatura</th>
+              <th>Cliente</th>
+              <th>Mecânico</th>
+              <th>Data Início</th>
+              <th>Estado</th>
+              <th>Valor Total</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="reparacoes-tbody">
+            <tr><td colspan="8" class="text-center" style="padding:2rem">
+              <div class="spinner"></div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+  <div id="modal-detail" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-detail-title">Reparação #—</h3>
+        <button class="modal-close" onclick="hideModal('modal-detail')">✕</button>
+      </div>
+      <div class="modal-body" id="modal-detail-body">—</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('modal-detail')">Fechar</button>
+        <div id="modal-detail-actions"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-reparacao" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-rep-title">Nova Reparação</h3>
+        <button class="modal-close" onclick="hideModal('modal-reparacao')">✕</button>
+      </div>
+      <form id="form-reparacao" onsubmit="submitReparacao(event)">
+        <div class="modal-body">
+          <input type="hidden" id="rep-id">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="rep-viatura">Viatura *</label>
+              <select id="rep-viatura" required onchange="onViaturaChange()">
+                <option value="">Selecionar viatura…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="rep-cliente">Cliente</label>
+              <input type="text" id="rep-cliente" readonly placeholder="Auto-preenchido" style="background:#f8fafc">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="rep-mecanico">Mecânico</label>
+              <select id="rep-mecanico">
+                <option value="">Não atribuído</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="rep-estado">Estado</label>
+              <select id="rep-estado">
+                <option value="PENDENTE">Pendente</option>
+                <option value="EM_EXECUCAO">Em Execução</option> <option value="AGUARDA_PECAS">Aguarda Peças</option>
+                <option value="CONCLUIDA">Concluída</option>
+                <option value="CANCELADA">Cancelada</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="rep-data-inicio">Data Início</label>
+              <input type="datetime-local" id="rep-data-inicio">
+            </div>
+            <div class="form-group">
+              <label for="rep-km">Quilometragem Entrada</label>
+              <input type="number" id="rep-km" min="0" placeholder="ex: 50000">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="rep-descricao">Descrição / Sintoma</label>
+            <textarea id="rep-descricao" rows="2" placeholder="Barulho ao travar…"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="rep-obs">Observações</label>
+            <textarea id="rep-obs" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-reparacao')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-estado" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">Atualizar Estado</h3>
+        <button class="modal-close" onclick="hideModal('modal-estado')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="estado-rep-id">
+        <div class="form-group">
+          <label for="novo-estado">Novo Estado *</label>
+          <select id="novo-estado">
+            <option value="PENDENTE">Pendente</option>
+            <option value="EM_EXECUCAO">Em Execução</option> <option value="AGUARDA_PECAS">Aguarda Peças</option>
+            <option value="CONCLUIDA">Concluída</option>
+            <option value="CANCELADA">Cancelada</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('modal-estado')">Cancelar</button>
+        <button class="btn btn-primary" onclick="submitEstado()">Atualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/reparacoes.js"></script>
+</body>
+</html>

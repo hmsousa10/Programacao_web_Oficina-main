@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGO – Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="app-layout">
+
+  <!-- Sidebar Overlay (mobile) -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🔧</div>
+        <div class="logo-text">
+          SGO
+          <div class="logo-subtitle">Gestão de Oficina</div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">Principal</li>
+      <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+
+      <li class="nav-section-label">Gestão</li>
+      <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
+      <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
+      <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
+      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
+    </ul>
+
+    <div class="theme-toggle">
+      <span class="theme-toggle-icon">☀️</span>
+      <label class="theme-switch" title="Alternar tema claro/escuro">
+        <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
+        <span class="theme-slider"></span>
+      </label>
+      <span class="theme-toggle-icon">🌙</span>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="user-name" id="sidebar-name">Utilizador</span>
+          <span class="user-role" id="sidebar-role">—</span>
+        </div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm w-full" onclick="logout()">
+        🚪 Sair
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── Main Content ── -->
+  <div class="main-content">
+
+    <!-- Page Header -->
+    <header class="page-header">
+      <div class="page-header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div>
+          <h1 class="page-title">📊 Dashboard</h1>
+          <p class="page-subtitle" id="last-updated">A carregar…</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-secondary btn-sm" onclick="refreshDashboard()">
+          🔄 Atualizar
+        </button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- KPI Cards -->
+      <section class="section">
+        <div class="kpi-grid" id="kpi-grid">
+          <!-- Injected by dashboard.js -->
+          <div class="kpi-card"><div class="loading-overlay"><div class="spinner"></div></div></div>
+          <div class="kpi-card"><div class="loading-overlay"><div class="spinner"></div></div></div>
+          <div class="kpi-card"><div class="loading-overlay"><div class="spinner"></div></div></div>
+          <div class="kpi-card"><div class="loading-overlay"><div class="spinner"></div></div></div>
+          <div class="kpi-card"><div class="loading-overlay"><div class="spinner"></div></div></div>
+          <div class="kpi-card"><div class="loading-overlay"><div class="spinner"></div></div></div>
+        </div>
+      </section>
+
+      <!-- Ocupação -->
+      <section class="section">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">🏭 Ocupação da Oficina</h2>
+            <span id="ocupacao-badge" class="badge badge-success">A calcular…</span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex; align-items:center; gap:1rem; margin-bottom:.75rem;">
+              <span style="font-size:1.5rem; font-weight:700;" id="ocupacao-text">—/8</span>
+              <span style="font-size:.875rem; color:var(--text-secondary);" id="ocupacao-desc">viaturas em serviço</span>
+            </div>
+            <div class="progress-bar-wrapper">
+              <div class="progress-bar green" id="ocupacao-bar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Two-column row: Alertas + Utilizadores -->
+      <div class="two-col-layout">
+
+        <!-- Alertas de Stock -->
+        <section class="section">
+          <div class="card" style="height:100%">
+            <div class="card-header">
+              <h2 class="card-title">⚠️ Alertas de Stock</h2>
+              <a href="pecas.html" class="btn btn-outline-primary btn-sm">Ver Peças</a>
+            </div>
+            <div class="table-wrapper" style="border-radius:0; border:none; box-shadow:none;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Referência</th>
+                    <th>Designação</th>
+                    <th>Stock Atual</th>
+                    <th>Mínimo</th>
+                  </tr>
+                </thead>
+                <tbody id="alertas-tbody">
+                  <tr><td colspan="4" class="text-center text-muted" style="padding:1.5rem">A carregar…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Gestão de Utilizadores (MANAGER only) -->
+        <section class="section" id="users-section">
+          <div class="card" style="height:100%">
+            <div class="card-header">
+              <h2 class="card-title">👥 Utilizadores</h2>
+              <button class="btn btn-primary btn-sm" onclick="openCreateUser()">+ Novo</button>
+            </div>
+            <div class="table-wrapper" style="border-radius:0; border:none; box-shadow:none;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Username</th>
+                    <th>Perfil</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody">
+                  <tr><td colspan="4" class="text-center text-muted" style="padding:1.5rem">A carregar…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /two-col-layout -->
+
+    </main>
+  </div><!-- /main-content -->
+
+  <!-- ── Modal: Utilizador ── -->
+  <div id="modal-user" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-user-title">Novo Utilizador</h3>
+        <button class="modal-close" onclick="hideModal('modal-user')">✕</button>
+      </div>
+      <form id="form-user" onsubmit="submitUser(event)">
+        <div class="modal-body">
+          <input type="hidden" id="user-id">
+          <div class="form-group">
+            <label for="user-name">Nome Completo *</label>
+            <input type="text" id="user-name" required placeholder="João Silva">
+          </div>
+          <div class="form-group">
+            <label for="user-username">Username *</label>
+            <input type="text" id="user-username" required placeholder="joao.silva">
+          </div>
+          <div class="form-group">
+            <label for="user-password">Palavra-passe <span id="pw-hint">(obrigatória)</span></label>
+            <input type="password" id="user-password" placeholder="••••••••">
+          </div>
+          <div class="form-group">
+            <label for="user-role">Perfil *</label>
+            <select id="user-role" required>
+              <option value="">Selecionar…</option>
+              <option value="MANAGER">Gestor</option>
+              <option value="RECEPTION">Receção</option>
+              <option value="MECHANIC">Mecânico</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-user')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

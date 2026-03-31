@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGO – Peças &amp; Stock</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="app-layout">
+
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🔧</div>
+        <div class="logo-text">SGO<div class="logo-subtitle">Gestão de Oficina</div></div>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">Principal</li>
+      <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+      <li class="nav-section-label">Gestão</li>
+      <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
+      <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
+      <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
+      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span class="theme-toggle-icon">☀️</span>
+      <label class="theme-switch" title="Alternar tema claro/escuro">
+        <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
+        <span class="theme-slider"></span>
+      </label>
+      <span class="theme-toggle-icon">🌙</span>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="user-name" id="sidebar-name">Utilizador</span>
+          <span class="user-role" id="sidebar-role">—</span>
+        </div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm w-full" onclick="logout()">🚪 Sair</button>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <div class="main-content">
+    <header class="page-header">
+      <div class="page-header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div>
+          <h1 class="page-title">📦 Peças &amp; Stock</h1>
+          <p class="page-subtitle" id="peca-count">—</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary" onclick="openCreatePeca()">+ Nova Peça</button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- Stock Alert Banner -->
+      <div id="stock-alert-banner" class="hidden alert alert-warning" style="margin-bottom:1rem">
+        <span class="alert-icon">⚠️</span>
+        <div id="stock-alert-text">—</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-list', this)">📋 Lista de Peças</button>
+        <button class="tab-btn" onclick="switchTab('tab-movimentos', this)">📊 Movimentos de Stock</button>
+      </div>
+
+      <!-- Tab: List -->
+      <div id="tab-list" class="tab-panel active">
+        <!-- Search + filter -->
+        <div class="d-flex gap-2" style="margin-bottom:1rem; flex-wrap:wrap; align-items:center">
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="Pesquisar por referência, designação…"
+                   oninput="handleSearch(this.value)">
+          </div>
+          <select id="filter-categoria" class="btn btn-secondary btn-sm"
+                  style="padding:.45rem .75rem; min-width:140px" onchange="applyFilters()">
+            <option value="">Todas as categorias</option>
+          </select>
+          <label style="display:flex; align-items:center; gap:.5rem; font-size:.875rem; cursor:pointer">
+            <input type="checkbox" id="filter-baixo" onchange="applyFilters()">
+            Apenas stock baixo
+          </label>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Referência</th>
+                <th>Designação</th>
+                <th>Categoria</th>
+                <th>Stock Atual</th>
+                <th>Stock Mínimo</th>
+                <th>Preço Unit.</th>
+                <th>Fornecedor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="pecas-tbody">
+              <tr><td colspan="8" class="text-center" style="padding:2rem"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab: Movimentos -->
+      <div id="tab-movimentos" class="tab-panel">
+        <div class="d-flex gap-2" style="margin-bottom:1rem; align-items:center">
+          <select id="sel-peca-movimentos" style="padding:.5rem .75rem; border:1px solid var(--border); border-radius:var(--radius); min-width:260px"
+                  onchange="loadMovimentos(this.value)">
+            <option value="">Selecionar peça…</option>
+          </select>
+        </div>
+        <div id="movimentos-content">
+          <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <div class="empty-title">Selecione uma peça</div>
+            <div class="empty-desc">Escolha uma peça para ver o histórico de movimentos de stock.</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ── Modal: Nova / Editar Peça ── -->
+  <div id="modal-peca" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-peca-title">Nova Peça</h3>
+        <button class="modal-close" onclick="hideModal('modal-peca')">✕</button>
+      </div>
+      <form id="form-peca" onsubmit="submitPeca(event)">
+        <div class="modal-body">
+          <input type="hidden" id="peca-id">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="p-referencia">Referência *</label>
+              <input type="text" id="p-referencia" required placeholder="REF-001">
+            </div>
+            <div class="form-group">
+              <label for="p-categoria">Categoria</label>
+              <input type="text" id="p-categoria" placeholder="Travões, Filtros…" list="categoria-list">
+              <datalist id="categoria-list"></datalist>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="p-designacao">Designação *</label>
+            <input type="text" id="p-designacao" required placeholder="Pastilha de travão dianteira">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="p-stock">Stock Atual</label>
+              <input type="number" id="p-stock" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="p-stock-min">Stock Mínimo</label>
+              <input type="number" id="p-stock-min" min="0" value="5">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="p-preco">Preço Unitário (€) *</label>
+              <input type="number" id="p-preco" required min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label for="p-fornecedor">Fornecedor</label>
+              <input type="text" id="p-fornecedor" placeholder="Auto Parts SA">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="p-localizacao">Localização no Armazém</label>
+            <input type="text" id="p-localizacao" placeholder="Prateleira A2, Caixa 3">
+          </div>
+          <div class="form-group">
+            <label for="p-descricao">Descrição / Notas</label>
+            <textarea id="p-descricao" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-peca')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Modal: Entrada Stock ── -->
+  <div id="modal-entrada" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">📥 Entrada de Stock</h3>
+        <button class="modal-close" onclick="hideModal('modal-entrada')">✕</button>
+      </div>
+      <form id="form-entrada" onsubmit="submitEntrada(event)">
+        <div class="modal-body">
+          <input type="hidden" id="entrada-peca-id">
+          <p id="entrada-peca-nome" style="font-weight:600; margin-bottom:.5rem">—</p>
+          <div class="form-group">
+            <label for="entrada-qty">Quantidade *</label>
+            <input type="number" id="entrada-qty" required min="1" value="1">
+          </div>
+          <div class="form-group">
+            <label for="entrada-preco">Preço de Custo (€)</label>
+            <input type="number" id="entrada-preco" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label for="entrada-obs">Observações</label>
+            <input type="text" id="entrada-obs" placeholder="Nota de encomenda…">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-entrada')">Cancelar</button>
+          <button type="submit" class="btn btn-success">Registar Entrada</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Modal: Saída Stock ── -->
+  <div id="modal-saida" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">📤 Saída de Stock</h3>
+        <button class="modal-close" onclick="hideModal('modal-saida')">✕</button>
+      </div>
+      <form id="form-saida" onsubmit="submitSaida(event)">
+        <div class="modal-body">
+          <input type="hidden" id="saida-peca-id">
+          <p id="saida-peca-nome" style="font-weight:600; margin-bottom:.5rem">—</p>
+          <p id="saida-stock-atual" style="font-size:.8rem; color:var(--text-secondary); margin-bottom:.75rem">—</p>
+          <div class="form-group">
+            <label for="saida-qty">Quantidade *</label>
+            <input type="number" id="saida-qty" required min="1" value="1">
+          </div>
+          <div class="form-group">
+            <label for="saida-obs">Observações</label>
+            <input type="text" id="saida-obs" placeholder="Motivo…">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-saida')">Cancelar</button>
+          <button type="submit" class="btn btn-warning">Registar Saída</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pecas.js"></script>
+</body>
+</html>

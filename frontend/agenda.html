@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGO – Agenda</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="app-layout">
+
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🔧</div>
+        <div class="logo-text">SGO<div class="logo-subtitle">Gestão de Oficina</div></div>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">Principal</li>
+      <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+      <li class="nav-section-label">Gestão</li>
+      <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
+      <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
+      <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
+      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span class="theme-toggle-icon">☀️</span>
+      <label class="theme-switch" title="Alternar tema claro/escuro">
+        <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
+        <span class="theme-slider"></span>
+      </label>
+      <span class="theme-toggle-icon">🌙</span>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="user-name" id="sidebar-name">Utilizador</span>
+          <span class="user-role" id="sidebar-role">—</span>
+        </div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm w-full" onclick="logout()">🚪 Sair</button>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <div class="main-content">
+    <header class="page-header">
+      <div class="page-header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div>
+          <h1 class="page-title">📅 Agenda Semanal</h1>
+          <p class="page-subtitle">Gestão de marcações</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">+ Nova Marcação</button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- Week Navigation -->
+      <div class="agenda-header">
+        <div class="week-nav">
+          <button class="btn btn-secondary btn-sm" onclick="prevWeek()">◀ Semana Anterior</button>
+          <span class="week-label" id="week-label">—</span>
+          <button class="btn btn-secondary btn-sm" onclick="nextWeek()">Próxima Semana ▶</button>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" onclick="goToToday()">Hoje</button>
+      </div>
+
+      <!-- Legend -->
+      <div class="d-flex gap-2" style="margin-bottom:1rem; flex-wrap:wrap;">
+        <span class="badge badge-success">● Livre</span>
+        <span class="badge badge-warning">● Parcial</span>
+        <span style="background:#ffedd5; color:#9a3412; border-radius:99px; padding:.2rem .6rem; font-size:.72rem; font-weight:600">● Quase Cheio</span>
+        <span class="badge badge-danger">● Cheio</span>
+      </div>
+
+      <!-- Calendar Grid -->
+      <div class="calendar-grid" id="calendar-grid">
+        <div class="loading-overlay"><div class="spinner"></div> A carregar calendário…</div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ── Modal: Nova / Editar Marcação ── -->
+  <div id="modal-agenda" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-agenda-title">Nova Marcação</h3>
+        <button class="modal-close" onclick="hideModal('modal-agenda')">✕</button>
+      </div>
+      <form id="form-agenda" onsubmit="submitAgendamento(event)">
+        <div class="modal-body">
+          <input type="hidden" id="ag-id">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ag-data">Data *</label>
+              <input type="date" id="ag-data" required>
+            </div>
+            <div class="form-group">
+              <label for="ag-hora-inicio">Hora Início *</label>
+              <input type="time" id="ag-hora-inicio" required min="08:00" max="18:00" step="3600">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ag-hora-fim">Hora Fim *</label>
+              <input type="time" id="ag-hora-fim" required min="08:00" max="18:00" step="3600">
+            </div>
+            <div class="form-group">
+              <label for="ag-tipo">Tipo de Serviço *</label>
+              <select id="ag-tipo" required>
+                <option value="">Selecionar…</option>
+                <option value="REVISAO">Revisão</option>
+                <option value="REPARACAO">Reparação</option>
+                <option value="INSPECAO">Inspeção</option>
+                <option value="DIAGNOSTICO">Diagnóstico</option>
+                <option value="PNEUS">Pneus</option>
+                <option value="OUTRO">Outro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ag-cliente">Cliente *</label>
+              <select id="ag-cliente" required onchange="loadClienteViaturas()">
+                <option value="">Selecionar…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ag-viatura">Viatura *</label>
+              <select id="ag-viatura" required>
+                <option value="">Selecionar cliente primeiro…</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ag-mecanico">Mecânico</label>
+              <select id="ag-mecanico">
+                <option value="">Não atribuído</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ag-estado">Estado</label>
+              <select id="ag-estado">
+                <option value="AGENDADO">Agendado</option>
+                <option value="CONFIRMADO">Confirmado</option>
+                <option value="CANCELADO">Cancelado</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ag-obs">Observações</label>
+            <textarea id="ag-obs" rows="3" placeholder="Informações adicionais…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-agenda')">Cancelar</button>
+          <button type="button" class="btn btn-outline-danger hidden" id="btn-cancelar-ag" onclick="cancelarAgendamento()">Cancelar Marcação</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Modal: Ver Marcação ── -->
+  <div id="modal-view-agenda" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">Detalhes da Marcação</h3>
+        <button class="modal-close" onclick="hideModal('modal-view-agenda')">✕</button>
+      </div>
+      <div class="modal-body" id="modal-view-agenda-body">—</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('modal-view-agenda')">Fechar</button>
+        <button class="btn btn-primary" id="btn-editar-ag" onclick="editCurrentAgendamento()">Editar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/agenda.js"></script>
+</body>
+</html>

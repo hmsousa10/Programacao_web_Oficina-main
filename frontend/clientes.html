@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGO – Clientes</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="app-layout">
+
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🔧</div>
+        <div class="logo-text">SGO<div class="logo-subtitle">Gestão de Oficina</div></div>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">Principal</li>
+      <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+      <li class="nav-section-label">Gestão</li>
+      <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
+      <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
+      <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
+      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span class="theme-toggle-icon">☀️</span>
+      <label class="theme-switch" title="Alternar tema claro/escuro">
+        <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
+        <span class="theme-slider"></span>
+      </label>
+      <span class="theme-toggle-icon">🌙</span>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="user-name" id="sidebar-name">Utilizador</span>
+          <span class="user-role" id="sidebar-role">—</span>
+        </div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm w-full" onclick="logout()">🚪 Sair</button>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <div class="main-content">
+    <header class="page-header">
+      <div class="page-header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div>
+          <h1 class="page-title">👤 Clientes</h1>
+          <p class="page-subtitle" id="cliente-count">—</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary" onclick="openCreateCliente()">+ Novo Cliente</button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- Search -->
+      <div class="section">
+        <div class="search-bar" style="max-width:400px">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Pesquisar por nome, NIF, telefone…"
+                 oninput="handleSearch(this.value)">
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>NIF</th>
+              <th>Telefone</th>
+              <th>Email</th>
+              <th>Morada</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="clientes-tbody">
+            <tr><td colspan="6" class="text-center" style="padding:2rem">
+              <div class="spinner"></div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ── Panel: Viaturas do Cliente ── -->
+  <div id="panel-viaturas" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title" id="panel-viaturas-title">Viaturas do Cliente</h3>
+        <button class="modal-close" onclick="hideModal('panel-viaturas')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="panel-viaturas-content">—</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('panel-viaturas')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Criar / Editar Cliente ── -->
+  <div id="modal-cliente" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-cliente-title">Novo Cliente</h3>
+        <button class="modal-close" onclick="hideModal('modal-cliente')">✕</button>
+      </div>
+      <form id="form-cliente" onsubmit="submitCliente(event)">
+        <div class="modal-body">
+          <input type="hidden" id="cliente-id">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cli-nome">Nome Completo *</label>
+              <input type="text" id="cli-nome" required placeholder="João Silva">
+            </div>
+            <div class="form-group">
+              <label for="cli-nif">NIF</label>
+              <input type="text" id="cli-nif" placeholder="123456789" maxlength="9">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cli-telefone">Telefone *</label>
+              <input type="tel" id="cli-telefone" required placeholder="912345678">
+            </div>
+            <div class="form-group">
+              <label for="cli-email">Email</label>
+              <input type="email" id="cli-email" placeholder="joao@exemplo.pt">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="cli-morada">Morada</label>
+            <input type="text" id="cli-morada" placeholder="Rua Exemplo, 1, Lisboa">
+          </div>
+
+          <div class="form-group">
+            <label for="cli-obs">Observações</label>
+            <textarea id="cli-obs" rows="2" placeholder="Notas adicionais…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-cliente')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/clientes.js"></script>
+</body>
+</html>
