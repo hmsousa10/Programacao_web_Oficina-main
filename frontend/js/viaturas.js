@@ -8,6 +8,7 @@ let allViaturas = [];
 let allClientes = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!initProtectedPage(['MANAGER', 'ADMIN', 'RECEPTION'])) return;
   if (!initProtectedPage(['MANAGER', 'RECEPTION', 'MECHANIC'])) return;
   await Promise.allSettled([loadViaturas(), loadClientesForSelect()]);
 });

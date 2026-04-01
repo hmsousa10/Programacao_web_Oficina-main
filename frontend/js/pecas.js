@@ -1,351 +1,290 @@
 /* ========================================================
-   SGO - pecas.js  |  Parts & Stock Management
+   SGO - pecas.js  |  Armazém (Com Delete e Alertas de Stock)
    ======================================================== */
 
 'use strict';
 
 let allPecas    = [];
-let searchQuery = '';
+let filteredPecas = [];
 
-document.addEventListener('DOMContentLoaded', async () => {
-  if (!initProtectedPage(['MANAGER', 'RECEPTION', 'MECHANIC'])) return;
-  await Promise.allSettled([loadPecas(), loadAlertasStock()]);
+// Paginação
+let currentPage = 1;
+const itemsPerPage = 10;
+let showOnlyAlerts = false; // Estado do nosso botão novo!
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!initProtectedPage(['MANAGER', 'ADMIN', 'MECHANIC', 'RECEPTION'])) return;
+  if (!initProtectedPage(['MANAGER', 'ADMIN', 'MECHANIC'])) return;
+  loadData();
 });
 
-/* ── Tab switching ── */
-function switchTab(tabId, btnEl) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(tabId)?.classList.add('active');
-  if (btnEl) btnEl.classList.add('active');
-}
-
-/* ── Load peças ── */
-async function loadPecas(search) {
-  const tbody   = document.getElementById('pecas-tbody');
-  const countEl = document.getElementById('peca-count');
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding:2rem"><div class="spinner"></div></td></tr>`;
+async function loadData() {
   try {
-    allPecas = await api.getPecas(search) || [];
-    if (countEl) countEl.textContent = `${allPecas.length} peç${allPecas.length !== 1 ? 'as' : 'a'}`;
-    populateCategorias();
-    populatePecaSelect();
-    applyFilters();
+    allPecas = await api.getPecas() || [];
+    
+    const catSelect = document.getElementById('category-filter');
+    const categoriasUnicas = [...new Set(allPecas.map(p => p.categoria).filter(c => c))];
+    
+    catSelect.innerHTML = '<option value="">Todas as Secções</option>';
+    categoriasUnicas.forEach(cat => {
+        catSelect.innerHTML += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
+    });
+
+    updateKPIs();
+    renderTable();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="alert alert-danger"><span class="alert-icon">❌</span> ${escapeHtml(err.message)}</div></td></tr>`;
+    document.getElementById('table-body').innerHTML = `<tr><td colspan="6" class="text-center text-danger">Erro a carregar dados</td></tr>`;
   }
 }
 
-/* ── Load stock alerts ── */
-async function loadAlertasStock() {
-  try {
-    const alertas = await api.getAlertasStock() || [];
-    const banner  = document.getElementById('stock-alert-banner');
-    const text    = document.getElementById('stock-alert-text');
-    if (!banner || !text) return;
-    if (alertas.length > 0) {
-      text.innerHTML = `<strong>${alertas.length} peça${alertas.length > 1 ? 's com stock abaixo' : ' com stock abaixo'} do mínimo:</strong> ${alertas.map(p => escapeHtml(p.designacao)).join(', ')}`;
-      banner.classList.remove('hidden');
+function updateKPIs() {
+    document.getElementById('kpi-total-pecas').textContent = allPecas.length;
+    document.getElementById('kpi-alertas').textContent = allPecas.filter(p => p.quantidadeStock <= p.stockMinimo).length;
+}
+
+// NOVO: Função para o Botão de Alertas!
+function toggleAlertFilter() {
+    showOnlyAlerts = !showOnlyAlerts;
+    const btn = document.getElementById('btn-filter-alerts');
+    
+    if (showOnlyAlerts) {
+        btn.className = 'btn btn-danger';
+        btn.innerHTML = '🛑 Remover Filtro';
     } else {
-      banner.classList.add('hidden');
+        btn.className = 'btn btn-outline-danger';
+        btn.innerHTML = '⚠️ Ver Alertas';
     }
-  } catch { /* ignore */ }
+    
+    currentPage = 1;
+    renderTable();
 }
 
-/* ── Populate category filter datalist ── */
-function populateCategorias() {
-  const cats     = [...new Set(allPecas.map(p => p.categoria).filter(Boolean))].sort();
-  const sel      = document.getElementById('filter-categoria');
-  const datalist = document.getElementById('categoria-list');
-
-  if (sel) {
-    sel.innerHTML = '<option value="">Todas as categorias</option>' +
-      cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-  }
-  if (datalist) {
-    datalist.innerHTML = cats.map(c => `<option value="${escapeHtml(c)}">`);
-  }
-}
-
-/* ── Populate peça dropdown for movements tab ── */
-function populatePecaSelect() {
-  const sel = document.getElementById('sel-peca-movimentos');
-  if (!sel) return;
-  const current = sel.value;
-  sel.innerHTML = '<option value="">Selecionar peça…</option>' +
-    allPecas.map(p =>
-      `<option value="${p.id}" ${p.id == current ? 'selected' : ''}>[${escapeHtml(p.referencia)}] ${escapeHtml(p.designacao)}</option>`
-    ).join('');
-}
-
-/* ── Search ── */
-const handleSearch = debounce(async (value) => {
-  searchQuery = value.toLowerCase();
-  if (value.length >= 2) {
-    await loadPecas(value.trim());
-  } else {
-    applyFilters();
-  }
-}, 350);
-
-/* ── Apply filters ── */
-function applyFilters() {
-  const catFilter  = document.getElementById('filter-categoria')?.value || '';
-  const baixoOnly  = document.getElementById('filter-baixo')?.checked || false;
-  const q          = searchQuery;
-
-  let filtered = allPecas;
-  if (catFilter)  filtered = filtered.filter(p => p.categoria === catFilter);
-  if (baixoOnly)  filtered = filtered.filter(p => p.quantidadeStock <= p.stockMinimo);
-  if (q)          filtered = filtered.filter(p =>
-    p.referencia?.toLowerCase().includes(q) ||
-    p.designacao?.toLowerCase().includes(q) ||
-    p.fornecedor?.toLowerCase().includes(q) ||
-    p.categoria?.toLowerCase().includes(q)
-  );
-  renderTable(filtered);
-}
-
-/* ── Render table ── */
-function renderTable(pecas) {
-  const tbody = document.getElementById('pecas-tbody');
+function renderTable() {
+  const tbody = document.getElementById('table-body');
   if (!tbody) return;
-  if (!pecas.length) {
-    tbody.innerHTML = `
-      <tr><td colspan="8">
-        <div class="empty-state">
-          <div class="empty-icon">📦</div>
-          <div class="empty-title">Nenhuma peça encontrada</div>
-          <div class="empty-desc">Ajuste a pesquisa ou registe uma nova peça.</div>
-        </div>
-      </td></tr>`;
+
+  const searchQuery = document.getElementById('search-input').value.toLowerCase();
+  const selectedCategory = document.getElementById('category-filter').value;
+
+  filteredPecas = allPecas.filter(p => {
+    const matchBusca = (p.designacao && p.designacao.toLowerCase().includes(searchQuery)) ||
+                       (p.referencia && p.referencia.toLowerCase().includes(searchQuery));
+    const matchCat = selectedCategory ? p.categoria === selectedCategory : true;
+    const matchAlert = showOnlyAlerts ? p.quantidadeStock <= p.stockMinimo : true; // Lógica do Alerta
+
+    return matchBusca && matchCat && matchAlert;
+  });
+
+  const totalPages = Math.ceil(filteredPecas.length / itemsPerPage) || 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  
+  const start = (currentPage - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  const pageItems = filteredPecas.slice(start, end);
+
+  document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}`;
+  document.getElementById('btn-prev').disabled = currentPage === 1;
+  document.getElementById('btn-next').disabled = currentPage === totalPages;
+
+  if (pageItems.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 2rem;">Nenhuma peça encontrada.</td></tr>`;
     return;
   }
-  tbody.innerHTML = pecas.map(p => {
-    const low = p.quantidadeStock <= p.stockMinimo;
+
+  tbody.innerHTML = pageItems.map(p => {
+    let stockClass = 'stock-good';
+    if (p.quantidadeStock <= 0) stockClass = 'stock-danger';
+    else if (p.quantidadeStock <= p.stockMinimo) stockClass = 'stock-warning';
+
     return `
-      <tr>
-        <td><code style="font-weight:600">${escapeHtml(p.referencia)}</code></td>
-        <td>${escapeHtml(p.designacao)}</td>
-        <td>${p.categoria ? `<span class="badge badge-secondary">${escapeHtml(p.categoria)}</span>` : '—'}</td>
-        <td>
-          <span class="${low ? 'stock-low' : 'stock-ok'}">${p.quantidadeStock}</span>
-          ${low ? '<span class="badge badge-danger" style="margin-left:.4rem">⚠️ Baixo</span>' : ''}
-        </td>
-        <td>${p.stockMinimo}</td>
-        <td>${formatCurrency(p.precoUnitario)}</td>
-        <td>${escapeHtml(p.fornecedor || '—')}</td>
-        <td>
-          <div class="table-actions">
-            <button class="btn btn-secondary btn-sm" onclick="openEditPeca(${p.id})" title="Editar">✏️</button>
-            <button class="btn btn-success btn-sm" onclick="openEntrada(${p.id}, '${escapeHtml(p.designacao)}')" title="Entrada Stock">📥</button>
-            <button class="btn btn-warning btn-sm" onclick="openSaida(${p.id}, '${escapeHtml(p.designacao)}', ${p.quantidadeStock})" title="Saída Stock" ${p.quantidadeStock <= 0 ? 'disabled' : ''}>📤</button>
-            <button class="btn btn-outline-danger btn-sm" onclick="deletePeca(${p.id}, '${escapeHtml(p.designacao)}')" title="Eliminar">🗑️</button>
-          </div>
-        </td>
-      </tr>`;
-  }).join('');
+    <tr>
+      <td><strong><code>${escapeHtml(p.referencia)}</code></strong></td>
+      <td><span class="badge badge-secondary">${escapeHtml(p.categoria || 'Sem secção')}</span></td>
+      <td>${escapeHtml(p.designacao)}</td>
+      <td>${formatCurrency(p.precoUnitario)}</td>
+      <td><span class="stock-badge ${stockClass}">${p.quantidadeStock}</span></td>
+      <td class="text-center" style="display:flex; justify-content:center; gap:5px;">
+        <button class="btn btn-outline-secondary btn-sm" onclick="openHistorico(${p.id})" title="Ver Movimentos">📜 Histórico</button>
+        <button class="btn btn-outline-primary btn-sm" onclick="openMovimento(${p.id}, '${escapeHtml(p.designacao)}', ${p.quantidadeStock})">📦 Stock</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditModal(${p.id})" title="Editar">✏️</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="deleteItem(${p.id}, '${escapeHtml(p.referencia)}')" title="Eliminar Peça">🗑️</button>
+      </td>
+    </tr>
+  `}).join('');
 }
 
-/* ── Create ── */
-function openCreatePeca() {
-  document.getElementById('modal-peca-title').textContent = 'Nova Peça';
-  document.getElementById('form-peca').reset();
-  document.getElementById('peca-id').value = '';
-  
-  const stockInput = document.getElementById('p-stock');
-  if (stockInput) {
-    stockInput.value = 0;
-    stockInput.readOnly = false; // Permitir definir stock inicial na criação
-    stockInput.style.backgroundColor = "";
-    stockInput.title = "";
-  }
-  
-  document.getElementById('p-stock-min').value = 5;
-  showModal('modal-peca');
-}
+function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
+function nextPage() { const total = Math.ceil(filteredPecas.length / itemsPerPage); if (currentPage < total) { currentPage++; renderTable(); } }
 
-/* ── Edit ── */
-function openEditPeca(id) {
+/* --- HISTÓRICO --- */
+function openHistorico(id) {
   const p = allPecas.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('modal-peca-title').textContent = 'Editar Peça';
-  document.getElementById('peca-id').value       = p.id;
-  document.getElementById('p-referencia').value  = p.referencia || '';
-  document.getElementById('p-designacao').value  = p.designacao || '';
-  document.getElementById('p-categoria').value   = p.categoria || '';
   
-  // BLOQUEIO PROFISSIONAL: O stock não pode ser editado manualmente aqui
-  const stockInput = document.getElementById('p-stock');
-  if (stockInput) {
-    stockInput.value = p.quantidadeStock ?? 0;
-    stockInput.readOnly = true; 
-    stockInput.title = "O stock só pode ser alterado via Entrada/Saída de Stock";
-    stockInput.style.backgroundColor = "var(--table-header-bg)";
+  document.getElementById('hist-peca-desc').textContent = `${p.designacao} (Ref: ${p.referencia})`;
+  const tbody = document.getElementById('hist-body');
+  
+  if (!p.movimentos || p.movimentos.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#94a3b8;">Sem histórico registado.</td></tr>`;
+  } else {
+      const movsOrdenados = p.movimentos.sort((a,b) => new Date(b.dataMovimento) - new Date(a.dataMovimento));
+      
+      tbody.innerHTML = movsOrdenados.map(m => {
+          const d = new Date(m.dataMovimento);
+          const dataFormat = d.toLocaleDateString('pt-PT') + ' ' + d.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+          const isEntrada = m.tipoMovimento === 'ENTRADA';
+          
+          return `
+          <tr>
+            <td style="font-size:13px; color:#64748b;">${dataFormat}</td>
+            <td class="${isEntrada ? 'mov-entrada' : 'mov-saida'}">${isEntrada ? '📥 Entrada' : '📤 Saída'}</td>
+            <td style="font-weight:bold; font-size:16px;">${m.quantidade > 0 ? '+'+m.quantidade : m.quantidade}</td>
+            <td style="font-size:13px;">${escapeHtml(m.observacoes || '—')}</td>
+          </tr>
+          `;
+      }).join('');
   }
-
-  document.getElementById('p-stock-min').value   = p.stockMinimo ?? 5;
-  document.getElementById('p-preco').value       = p.precoUnitario ?? '';
-  document.getElementById('p-fornecedor').value  = p.fornecedor || '';
-  
-  if (document.getElementById('p-localizacao')) document.getElementById('p-localizacao').value = p.localizacao || '';
-  if (document.getElementById('p-descricao'))   document.getElementById('p-descricao').value   = p.descricao || '';
-  
-  showModal('modal-peca');
+  showModal('modal-historico');
 }
 
-/* ── Submit create/edit ── */
-async function submitPeca(e) {
-  e.preventDefault();
-  const id = document.getElementById('peca-id').value;
+/* --- CRUD DA PEÇA --- */
+function toggleOutrosCategoria() {
+  const select = document.getElementById('item-categoria');
+  const input = document.getElementById('item-categoria-outros');
+  if (select.value === 'Outros') {
+      input.style.display = 'block';
+      input.required = true;
+  } else {
+      input.style.display = 'none';
+      input.required = false;
+  }
+}
+
+function openCreateModal() {
+  document.getElementById('modal-title').textContent = 'Adicionar Nova Peça';
+  document.getElementById('data-form').reset();
+  document.getElementById('item-id').value = '';
+  document.getElementById('item-stock').disabled = false;
+  document.getElementById('item-categoria-outros').style.display = 'none';
+  showModal('modal-form');
+}
+
+function openEditModal(id) {
+  const p = allPecas.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-title').textContent = 'Editar Peça';
+  document.getElementById('item-id').value = p.id;
+  document.getElementById('item-ref').value = p.referencia || '';
   
+  const catSelect = document.getElementById('item-categoria');
+  const inputOutros = document.getElementById('item-categoria-outros');
+  
+  let found = false;
+  for (let i = 0; i < catSelect.options.length; i++) {
+      if (catSelect.options[i].value === p.categoria) {
+          found = true; break;
+      }
+  }
+  
+  if (p.categoria && !found) {
+      catSelect.value = 'Outros';
+      inputOutros.style.display = 'block';
+      inputOutros.value = p.categoria;
+  } else {
+      catSelect.value = p.categoria || '';
+      inputOutros.style.display = 'none';
+  }
+  
+  document.getElementById('item-desc').value = p.designacao || '';
+  document.getElementById('item-stock').value = p.quantidadeStock || 0;
+  document.getElementById('item-stock').disabled = true;
+  document.getElementById('item-minimo').value = p.stockMinimo || 0;
+  document.getElementById('item-preco').value = p.precoUnitario || 0;
+  showModal('modal-form');
+}
+
+async function submitForm(e) {
+  e.preventDefault();
+  const id = document.getElementById('item-id').value;
+  
+  let cat = document.getElementById('item-categoria').value.trim();
+  if (cat === 'Outros') {
+      cat = document.getElementById('item-categoria-outros').value.trim(); 
+  }
+
   const payload = {
-    referencia:      document.getElementById('p-referencia').value.trim(),
-    designacao:      document.getElementById('p-designacao').value.trim(),
-    categoria:       document.getElementById('p-categoria').value.trim() || null,
-    quantidadeStock: parseInt(document.getElementById('p-stock').value) || 0, 
-    stockMinimo:     parseInt(document.getElementById('p-stock-min').value) || 0,
-    precoUnitario:   parseFloat(document.getElementById('p-preco').value) || 0,
-    fornecedor:      document.getElementById('p-fornecedor').value.trim() || null
+    referencia: document.getElementById('item-ref').value.trim(),
+    categoria: cat,
+    designacao: document.getElementById('item-desc').value.trim(),
+    stockMinimo: parseInt(document.getElementById('item-minimo').value) || 0,
+    precoUnitario: parseFloat(document.getElementById('item-preco').value) || 0
   };
   
+  if (!id) payload.quantidadeStock = parseInt(document.getElementById('item-stock').value) || 0;
+
   try {
-    if (id) {
-      await api.updatePeca(id, payload);
-      showToast('Peça atualizada!', 'success');
-    } else {
-      await api.createPeca(payload);
-      showToast('Peça criada!', 'success');
-    }
-    hideModal('modal-peca');
-    await Promise.allSettled([loadPecas(), loadAlertasStock()]);
-  } catch (err) {
-    showToast('Erro: ' + err.message, 'error');
-  }
+    if (id) await api.updatePeca(id, payload);
+    else await api.createPeca(payload);
+    showToast(id ? 'Peça atualizada!' : 'Peça criada!', 'success');
+    hideModal('modal-form');
+    loadData();
+  } catch (err) { showToast('Erro: ' + err.message, 'error'); }
 }
 
-/* ── Delete ── */
-async function deletePeca(id, nome) {
-  const ok = await confirmDialog(`Eliminar peça "${nome}"? Esta ação não pode ser desfeita.`);
+// Apagar Corrigido
+async function deleteItem(id, ref) {
+  const ok = await confirmDialog(`Tem a certeza que deseja eliminar a referência ${ref}? Todo o histórico será perdido!`);
   if (!ok) return;
   try {
     await api.deletePeca(id);
-    showToast('Peça eliminada.', 'success');
-    await Promise.allSettled([loadPecas(), loadAlertasStock()]);
-  } catch (err) {
-    showToast('Erro: ' + err.message, 'error');
+    showToast('Peça eliminada com sucesso.', 'success');
+    loadData();
+  } catch (err) { showToast('Erro: ' + err.message, 'error'); }
+}
+
+/* --- MOVIMENTOS --- */
+function openMovimento(id, desc, atual) {
+  document.getElementById('form-movimento').reset();
+  document.getElementById('mov-peca-id').value = id;
+  document.getElementById('mov-peca-desc').textContent = desc;
+  document.getElementById('mov-peca-atual').textContent = atual + ' un';
+  selectMovimento('ENTRADA');
+  showModal('modal-movimento');
+}
+
+function selectMovimento(tipo) {
+  document.getElementById('btn-entrada').classList.remove('active');
+  document.getElementById('btn-saida').classList.remove('active');
+  document.getElementById('mov-tipo').value = tipo;
+  const lbl = document.getElementById('lbl-quantidade');
+  const btn = document.getElementById('btn-confirmar-mov');
+
+  if (tipo === 'ENTRADA') {
+    document.getElementById('btn-entrada').classList.add('active');
+    lbl.textContent = 'Quantidade a Receber:';
+    btn.textContent = 'Confirmar Entrada';
+    btn.className = 'btn btn-primary';
+  } else if (tipo === 'SAIDA') {
+    document.getElementById('btn-saida').classList.add('active');
+    lbl.textContent = 'Quantidade a Retirar:';
+    btn.textContent = 'Confirmar Saída';
+    btn.className = 'btn btn-warning';
   }
 }
 
-/* ── Entrada de Stock ── */
-function openEntrada(pecaId, nome) {
-  document.getElementById('entrada-peca-id').value   = pecaId;
-  document.getElementById('entrada-peca-nome').textContent = nome;
-  document.getElementById('form-entrada').reset();
-  document.getElementById('entrada-peca-id').value   = pecaId;
-  document.getElementById('entrada-qty').value       = 1;
-  showModal('modal-entrada');
-}
-
-async function submitEntrada(e) {
+async function submitMovimento(e) {
   e.preventDefault();
-  const pecaId = document.getElementById('entrada-peca-id').value;
-  const qty    = parseInt(document.getElementById('entrada-qty').value);
-  const preco  = document.getElementById('entrada-preco').value;
-  const obs    = document.getElementById('entrada-obs').value.trim();
-
-  if (!qty || qty < 1) { showToast('Quantidade inválida.', 'warning'); return; }
-
-  try {
-    // Enviando campos que batem certo com o StockMovimentoRequest atualizado
-    await api.entradaStock(pecaId, {
-      quantidade:   qty,
-      precoCusto:   preco ? parseFloat(preco) : null,
-      observacoes:  obs || null,
-    });
-    showToast(`Entrada de ${qty} unidade(s) registada!`, 'success');
-    hideModal('modal-entrada');
-    await Promise.allSettled([loadPecas(), loadAlertasStock()]);
-  } catch (err) {
-    showToast('Erro: ' + err.message, 'error');
-  }
-}
-
-/* ── Saída de Stock ── */
-function openSaida(pecaId, nome, quantidadeStock) {
-  document.getElementById('saida-peca-id').value           = pecaId;
-  document.getElementById('saida-peca-nome').textContent   = nome;
-  document.getElementById('saida-stock-atual').textContent = `Stock disponível: ${quantidadeStock}`;
-  document.getElementById('saida-qty').value   = 1;
-  document.getElementById('saida-qty').max     = quantidadeStock;
-  document.getElementById('saida-obs').value   = '';
-  showModal('modal-saida');
-}
-
-async function submitSaida(e) {
-  e.preventDefault();
-  const pecaId = document.getElementById('saida-peca-id').value;
-  const qty    = parseInt(document.getElementById('saida-qty').value);
-  const obs    = document.getElementById('saida-obs').value.trim();
-
-  if (!qty || qty < 1) { showToast('Quantidade inválida.', 'warning'); return; }
+  const pecaId = document.getElementById('mov-peca-id').value;
+  const payload = {
+    tipo: document.getElementById('mov-tipo').value,
+    quantidade: parseInt(document.getElementById('mov-qtd').value),
+    observacoes: document.getElementById('mov-obs').value.trim()
+  };
 
   try {
-    await api.saidaStock(pecaId, { quantidade: qty, observacoes: obs || null });
-    showToast(`Saída de ${qty} unidade(s) registada!`, 'success');
-    hideModal('modal-saida');
-    await Promise.allSettled([loadPecas(), loadAlertasStock()]);
-  } catch (err) {
-    showToast('Erro: ' + err.message, 'error');
-  }
-}
-
-/* ── Movimentos de Stock ── */
-async function loadMovimentos(pecaId) {
-  const content = document.getElementById('movimentos-content');
-  if (!content) return;
-  if (!pecaId) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Selecione uma peça</div></div>`;
-    return;
-  }
-  content.innerHTML = `<div class="loading-overlay"><div class="spinner"></div> A carregar…</div>`;
-  try {
-    const movimentos = await api.getMovimentosPeca(pecaId) || [];
-    if (!movimentos.length) {
-      content.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Sem movimentos registados</div></div>`;
-      return;
-    }
-    content.innerHTML = `
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Data/Hora</th>
-              <th>Tipo</th>
-              <th>Quantidade</th>
-              <th>Utilizador</th>
-              <th>Observações</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${movimentos.map(m => {
-              const isEntrada = m.tipo === 'ENTRADA' || (m.quantidade && m.quantidade > 0);
-              return `
-                <tr>
-                  <td>${formatDateTime(m.dataHora || m.createdAt)}</td>
-                  <td>${isEntrada
-                    ? '<span class="badge badge-success">📥 Entrada</span>'
-                    : '<span class="badge badge-warning">📤 Saída</span>'}</td>
-                  <td><strong class="${isEntrada ? 'text-success' : 'text-warning'}">${isEntrada ? '+' : '-'}${Math.abs(m.quantidade)}</strong></td>
-                  <td>${escapeHtml(m.utilizador?.name || m.utilizador?.username || '—')}</td>
-                  <td>${escapeHtml(m.observacoes || '—')}</td>
-                </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  } catch (err) {
-    content.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">❌</span> ${escapeHtml(err.message)}</div>`;
-  }
+    await api.registerMovimentoStock(pecaId, payload);
+    showToast('Movimento registado!', 'success');
+    hideModal('modal-movimento');
+    loadData();
+  } catch (err) { showToast('Erro: ' + err.message, 'error'); }
 }

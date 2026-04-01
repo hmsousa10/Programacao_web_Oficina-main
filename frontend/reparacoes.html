@@ -5,6 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SGO – Reparações</title>
   <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <style>
+    /* =========================================================
+       ESTILOS MÁGICOS DE IMPRESSÃO (Força PRETO no BRANCO)
+       ========================================================= */
+    @media screen {
+      #print-section { display: none; }
+    }
+    
+    @media print {
+      /* 1. Esconde agressivamente TUDO o que não for a folha de impressão */
+      body > *:not(#print-section) { 
+        display: none !important; 
+      }
+      
+      /* 2. Força o fundo da página a branco e retira margens padrão */
+      body { 
+        background: #ffffff !important; 
+        margin: 0 !important; 
+        padding: 0 !important; 
+      }
+
+      /* 3. Garante que a secção de impressão aparece e força TUDO a preto */
+      #print-section { 
+        display: block !important; 
+        width: 100%;
+        padding: 10mm;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        color: #000000 !important; /* FORÇA TEXTO A PRETO */
+        background: #ffffff !important;
+      }
+
+      /* Força todas as tags dentro da folha a serem pretas também */
+      #print-section * {
+        color: #000000 !important;
+      }
+      
+      /* Layout da Folha */
+      .print-header { display: flex; justify-content: space-between; border-bottom: 2px solid #000 !important; padding-bottom: 10px; margin-bottom: 20px; }
+      .print-logo h1 { margin: 0; font-size: 28px; font-weight: 900; }
+      .print-logo p { margin: 0; font-size: 14px; }
+      .print-meta { text-align: right; font-size: 14px; }
+      
+      .print-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+      .print-box { border: 1px solid #000 !important; padding: 15px; border-radius: 8px; }
+      .print-box h3 { margin-top: 0; font-size: 14px; border-bottom: 1px solid #000 !important; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase;}
+      .print-box p { margin: 5px 0; font-size: 14px; }
+      
+      .print-desc-box { border: 1px solid #000 !important; padding: 15px; border-radius: 8px; margin-bottom: 20px;}
+      
+      .print-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+      .print-table th, .print-table td { border: 1px solid #000 !important; padding: 10px; text-align: left; font-size: 14px; }
+      .print-table th { background-color: #eeeeee !important; font-weight: bold; }
+      
+      .print-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; }
+      .print-signature { width: 40%; border-top: 1px solid #000 !important; text-align: center; padding-top: 5px; font-size: 14px; }
+      
+      /* O Fator UAU: Contentor do QR Code */
+      .print-qr-container { text-align: center; border: 2px dashed #000 !important; padding: 15px; border-radius: 8px; width: 200px; }
+      .print-qr-container p { font-size: 11px; margin-top: 10px; font-weight: bold; line-height: 1.4;}
+      #qrcode img { margin: 0 auto; }
+    }
+  </style>
 </head>
 <body class="app-layout">
 
@@ -75,7 +139,8 @@
                 style="padding:.45rem .75rem; min-width:160px">
           <option value="">Todos os estados</option>
           <option value="PENDENTE">Pendente</option>
-          <option value="EM_EXECUCAO">Em Execução</option> <option value="AGUARDA_PECAS">Aguarda Peças</option>
+          <option value="EM_EXECUCAO">Em Execução</option> 
+          <option value="AGUARDA_PECAS">Aguarda Peças</option>
           <option value="CONCLUIDA">Concluída</option>
           <option value="CANCELADA">Cancelada</option>
         </select>
@@ -113,9 +178,9 @@
         <button class="modal-close" onclick="hideModal('modal-detail')">✕</button>
       </div>
       <div class="modal-body" id="modal-detail-body">—</div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="hideModal('modal-detail')">Fechar</button>
+      <div class="modal-footer" style="justify-content: space-between;">
         <div id="modal-detail-actions"></div>
+        <button class="btn btn-secondary" onclick="hideModal('modal-detail')">Fechar</button>
       </div>
     </div>
   </div>
@@ -154,7 +219,8 @@
               <label for="rep-estado">Estado</label>
               <select id="rep-estado">
                 <option value="PENDENTE">Pendente</option>
-                <option value="EM_EXECUCAO">Em Execução</option> <option value="AGUARDA_PECAS">Aguarda Peças</option>
+                <option value="EM_EXECUCAO">Em Execução</option> 
+                <option value="AGUARDA_PECAS">Aguarda Peças</option>
                 <option value="CONCLUIDA">Concluída</option>
                 <option value="CANCELADA">Cancelada</option>
               </select>
@@ -202,7 +268,8 @@
           <label for="novo-estado">Novo Estado *</label>
           <select id="novo-estado">
             <option value="PENDENTE">Pendente</option>
-            <option value="EM_EXECUCAO">Em Execução</option> <option value="AGUARDA_PECAS">Aguarda Peças</option>
+            <option value="EM_EXECUCAO">Em Execução</option> 
+            <option value="AGUARDA_PECAS">Aguarda Peças</option>
             <option value="CONCLUIDA">Concluída</option>
             <option value="CANCELADA">Cancelada</option>
           </select>
@@ -211,6 +278,115 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="hideModal('modal-estado')">Cancelar</button>
         <button class="btn btn-primary" onclick="submitEstado()">Atualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="print-section">
+    <div class="print-header">
+      <div class="print-logo">
+        <h1>SGO 🔧</h1>
+        <p>Sistema de Gestão de Oficina</p>
+        <p>Rua da Mecânica, 123 - 4000-000 Porto</p>
+      </div>
+      <div class="print-meta">
+        <h2>FOLHA DE OBRA #<span id="print-id">---</span></h2>
+        <p>Data: <strong id="print-date">---</strong></p>
+      </div>
+    </div>
+
+    <div class="print-info-grid">
+      <div class="print-box">
+        <h3>👤 Dados do Cliente</h3>
+        <p><strong>Nome:</strong> <span id="print-client-name">---</span></p>
+      </div>
+      <div class="print-box">
+        <h3>🚗 Dados da Viatura</h3>
+        <p><strong>Matrícula:</strong> <span id="print-vehicle-mat">---</span></p>
+        <p><strong>Veículo:</strong> <span id="print-vehicle-mod">---</span></p>
+      </div>
+    </div>
+
+    <div class="print-desc-box">
+      <h3>⚠️ Descrição do Problema / Sintoma Relatado</h3>
+      <p id="print-desc">---</p>
+    </div>
+
+    <h3 style="font-size: 16px; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 5px;">🔧 Lista de Trabalhos / Operações</h3>
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th>Operação</th>
+          <th style="width: 15%;">Tempo Estimado</th>
+          <th style="width: 20%;">Estado Atual</th>
+        </tr>
+      </thead>
+      <tbody id="print-ops-tbody">
+        </tbody>
+    </table>
+
+    <div class="print-footer">
+      <div class="print-qr-container">
+        <div id="qrcode"></div>
+        <p>Aponte a câmara para<br>acompanhar o estado<br>do seu veículo em direto!</p>
+      </div>
+      <div class="print-signature">
+        Assinatura do Cliente
+      </div>
+    </div>
+  </div>
+  <div id="modal-faturacao" class="modal-overlay" role="dialog" aria-modal="true" style="z-index: 1060;">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">💳 Gerar Orçamento / Faturação</h3>
+        <button class="modal-close" onclick="hideModal('modal-faturacao')">✕</button>
+      </div>
+      <div class="modal-body" style="background: #f8fafc; color: #334155;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <h4 style="margin: 0; color: #0f172a;">Reparação #<span id="fat-rep-id"></span></h4>
+            <p style="margin: 0; font-size: 14px;">Cliente: <strong id="fat-cliente"></strong> | Viatura: <strong id="fat-viatura"></strong></p>
+          </div>
+          <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
+            <label for="taxa-horaria" style="font-weight: bold; font-size: 12px; display: block;">Taxa Horária (€/h)</label>
+            <input type="number" id="taxa-horaria" value="40" step="1" style="width: 80px; padding: 5px; font-weight: bold;" onchange="calcularFatura()">
+          </div>
+        </div>
+
+        <h4 style="margin-bottom: 10px; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px;">👨‍🔧 Mão de Obra (Registada no Tablet)</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <thead style="background: #e2e8f0; text-align: left;">
+            <tr><th style="padding: 8px;">Operação</th><th style="padding: 8px;">Tempo Real</th><th style="padding: 8px; text-align: right;">Valor</th></tr>
+          </thead>
+          <tbody id="fat-maodeobra-tbody">
+            </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 10px;">
+          <h4 style="margin: 0; color: #0f172a;">📦 Peças / Materiais</h4>
+          <button class="btn btn-primary btn-sm" onclick="adicionarLinhaMaterial()">+ Adicionar Peça</button>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <thead style="background: #e2e8f0; text-align: left;">
+            <tr><th style="padding: 8px;">Descrição / Ref</th><th style="padding: 8px;">Qtd</th><th style="padding: 8px;">Preço Un.</th><th style="padding: 8px; text-align: right;">Total</th><th style="padding: 8px;"></th></tr>
+          </thead>
+          <tbody id="fat-materiais-tbody">
+            </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <div style="background: #1e293b; color: white; padding: 20px; border-radius: 8px; width: 300px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><span>Subtotal:</span> <span id="fat-subtotal">0.00 €</span></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #475569; padding-bottom: 10px;"><span>IVA (23%):</span> <span id="fat-iva">0.00 €</span></div>
+            <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; color: #38bdf8;"><span>Total Final:</span> <span id="fat-total">0.00 €</span></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="background: #e2e8f0;">
+        <button type="button" class="btn btn-secondary" onclick="hideModal('modal-faturacao')">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="guardarFaturacao()">💾 Guardar Valor Total</button>
       </div>
     </div>
   </div>

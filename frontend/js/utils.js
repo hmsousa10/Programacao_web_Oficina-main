@@ -283,3 +283,32 @@ function isSameDay(a, b) {
          a.getMonth()    === b.getMonth()    &&
          a.getDate()     === b.getDate();
 }
+
+/* --- CONTROLO DE ACESSOS DA INTERFACE --- */
+function applyRoleUI() {
+  const userStr = sessionStorage.getItem('sgo_user');
+  if (!userStr) return;
+  const user = JSON.parse(userStr);
+  const role = user.role || user.perfil;
+
+  // 1. Ocultar menus laterais dependendo do perfil
+  if (role === 'RECEPTION') {
+      const hideLinks = ['dashboard.html', 'mecanico.html', 'logs.html'];
+      hideLinks.forEach(link => {
+          const el = document.querySelector(`a[href="${link}"]`);
+          if (el && el.parentElement) el.parentElement.style.display = 'none';
+      });
+  } 
+  else if (role === 'MECHANIC') {
+      const hideLinks = ['dashboard.html', 'clientes.html', 'viaturas.html', 'agenda.html', 'logs.html'];
+      hideLinks.forEach(link => {
+          const el = document.querySelector(`a[href="${link}"]`);
+          if (el && el.parentElement) el.parentElement.style.display = 'none';
+      });
+  }
+}
+
+// Chamar a função sempre que a página carrega
+document.addEventListener('DOMContentLoaded', () => {
+    applyRoleUI();
+});

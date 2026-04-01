@@ -198,6 +198,11 @@ public class ReparacaoService {
             if (request.descricao() != null) {
                 reparacao.setDescricao(request.descricao());
             }
+            
+            // ADICIONADO: Guardar o valor total faturado na Base de Dados
+            if (request.valorTotal() != null) {
+                reparacao.setValorTotal(request.valorTotal());
+            }
 
             return toResponse(reparacaoDao.save(em, reparacao));
         });
@@ -219,6 +224,17 @@ public class ReparacaoService {
         List<OperacaoResponse> operacoes = r.getOperacoes() != null
                 ? r.getOperacoes().stream().map(this::toOperacaoResponse).collect(Collectors.toList())
                 : List.of();
+                
+        // EXTRAIR PEÇAS DA BD PARA ENVIAR PARA A FATURAÇÃO
+        List<ReparacaoResponse.PecaUtilizada> pecasUsadas = r.getMovimentosStock() != null
+                ? r.getMovimentosStock().stream()
+                .map(m -> new ReparacaoResponse.PecaUtilizada(
+                        m.getPeca().getDesignacao(),
+                        Math.abs(m.getQuantidade()), // Math.abs garante que quantidades negativas (saídas) viram positivas na fatura
+                        m.getPeca().getPrecoUnitario()
+                )).collect(Collectors.toList())
+                : List.of();
+
         return new ReparacaoResponse(
                 r.getId(),
                 r.getAgendamento() != null ? r.getAgendamento().getId() : null,
@@ -230,7 +246,9 @@ public class ReparacaoService {
                 r.getMecanico() != null ? r.getMecanico().getId() : null,
                 r.getMecanico() != null ? r.getMecanico().getName() : null,
                 r.getDataInicio(), r.getDataFim(), r.getEstado().name(),
-                r.getDescricao(), r.getTempoTotalMinutos(), r.getValorTotal(), operacoes
+                r.getDescricao(), r.getTempoTotalMinutos(), r.getValorTotal(), 
+                operacoes,
+                pecasUsadas // <--- PEÇAS ADICIONADAS AQUI PARA O FRONTEND AS APANHAR!
         );
     }
 

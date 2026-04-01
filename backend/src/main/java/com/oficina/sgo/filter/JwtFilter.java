@@ -26,7 +26,6 @@ public class JwtFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse resp = (HttpServletResponse) response;
 
-        // 1. DEIXAR PASSAR OS PEDIDOS 'OPTIONS' DO BROWSER PARA O CORS
         if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {
             chain.doFilter(request, response);
             return;
@@ -34,12 +33,12 @@ public class JwtFilter implements Filter {
 
         // 2. VERIFICAÇÃO DO CAMINHO (Usar getRequestURI em vez de getServletPath)
         String path = req.getRequestURI();
-        if (path != null && path.contains("/auth/")) {
+        // Tem de ter o auth E o tracker!
+        if (path != null && (path.contains("/auth/") || path.contains("/tracker/"))) {
             chain.doFilter(request, response);
             return;
         }
         
-        // 3. VERIFICAÇÃO DO TOKEN
         String header = req.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

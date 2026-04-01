@@ -8,8 +8,10 @@ let allReparacoes = [];
 let allViaturas   = [];
 let allMecanicos  = [];
 let viaturaMap    = {}; // id -> viatura object
+let currentReparacaoView = null; // Guarda a reparação atual para impressão
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!initProtectedPage(['MANAGER', 'ADMIN', 'RECEPTION'])) return;
   if (!initProtectedPage(['MANAGER', 'RECEPTION', 'MECHANIC'])) return;
   await Promise.allSettled([loadReparacoes(), loadViaturas(), loadMecanicos()]);
   // Set default datetime for new repair
@@ -74,7 +76,6 @@ function onViaturaChange() {
   const input  = document.getElementById('rep-cliente');
   if (!input) return;
   const viatura = viaturaMap[parseInt(vId)];
-  // Usar clienteNome que vem da resposta da viatura
   input.value = viatura?.clienteNome || viatura?.cliente?.nome || '';
 }
 
@@ -148,6 +149,7 @@ async function viewReparacao(id) {
 
   try {
     const r = await api.getReparacao(id);
+    currentReparacaoView = r; // Guardar globalmente para a função de impressão
 
     const opsHtml = (r.operacoes || []).length
       ? (r.operacoes || []).map(op => `
@@ -155,8 +157,8 @@ async function viewReparacao(id) {
             <div class="op-info">
               <div class="op-desc">${escapeHtml(op.descricao)}</div>
               <div class="op-meta">
-                ${op.tempoEstimado ? '⏱ Estimado: ' + formatDuration(op.tempoEstimado) : ''}
-                ${op.tempoReal ? ' | Real: ' + formatDuration(op.tempoReal) : ''}
+                ${op.tempoEstimadoMinutos ? '⏱ Estimado: ' + formatDuration(op.tempoEstimadoMinutos) : ''}
+                ${op.tempoRealMinutos ? ' | Real: ' + formatDuration(op.tempoRealMinutos) : ''}
                 ${op.valor ? ' | ' + formatCurrency(op.valor) : ''}
               </div>
             </div>
@@ -190,13 +192,79 @@ async function viewReparacao(id) {
     `;
 
     if (actEl) {
+      const user = getCurrentUser();
+      
+      // O botão de Faturar SÓ aparece se for Gestor ou Admin
+      let btnFaturar = '';
+      if (user && (user.role === 'MANAGER' || user.role === 'ADMIN')) {
+          btnFaturar = `<button class="btn btn-warning btn-sm" onclick="openFaturacao()" style="margin-right: 10px; color: black;">💳 Faturar</button>`;
+      }
+
       actEl.innerHTML = `
-        <button class="btn btn-outline-primary btn-sm" onclick="openUpdateEstado(${r.id}, '${r.estado}')">🔄 Atualizar Estado</button>`;
+        <button class="btn btn-outline-primary btn-sm" onclick="openUpdateEstado(${r.id}, '${r.estado}')" style="margin-right: 10px;">🔄 Estado</button>
+        
+        ${btnFaturar} <button class="btn btn-outline-secondary btn-sm" onclick="window.open('status.html?id=${r.id}', '_blank')" style="margin-right: 10px;">📱 Portal</button>
+        <button class="btn btn-success btn-sm" onclick="printFolhaObra()">🖨️ Imprimir</button>
+      `;
     }
   } catch (err) {
     body.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">❌</span> ${escapeHtml(err.message)}</div>`;
   }
 }
+
+/* ── MÁGICA: Imprimir Folha de Obra com QR Code ── */
+function printFolhaObra() {
+  if (!currentReparacaoView) return;
+  const r = currentReparacaoView;
+
+  // 1. Preencher os dados na folha invisível
+  document.getElementById('print-id').textContent = r.id;
+  document.getElementById('print-date').textContent = new Date(r.dataInicio || new Date()).toLocaleDateString('pt-PT');
+  
+  document.getElementById('print-client-name').textContent = r.clienteNome || '—';
+  
+  document.getElementById('print-vehicle-mat').textContent = r.viaturaMatricula || '—';
+  document.getElementById('print-vehicle-mod').textContent = (r.viaturaMarca || '') + ' ' + (r.viaturaModelo || '');
+  
+  document.getElementById('print-desc').textContent = r.descricao || 'Serviço Geral / Diagnóstico';
+
+  // 2. Preencher a tabela de operações
+  const tbody = document.getElementById('print-ops-tbody');
+  if (r.operacoes && r.operacoes.length > 0) {
+    tbody.innerHTML = r.operacoes.map(op => `
+      <tr>
+        <td>${escapeHtml(op.descricao)}</td>
+        <td>${op.tempoEstimadoMinutos ? op.tempoEstimadoMinutos + ' min' : '—'}</td>
+        <td>${op.estado.replace('_', ' ')}</td>
+      </tr>
+    `).join('');
+  } else {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 20px;">Nenhuma operação detalhada. Espaço livre para anotações do mecânico.</td></tr>';
+  }
+
+  // 3. Gerar o QR Code
+  const qrContainer = document.getElementById('qrcode');
+  qrContainer.innerHTML = ''; // Limpar anterior
+  
+  // O link mágico que vamos criar no futuro:
+  const trackingUrl = window.location.origin + '/frontend/status.html?id=' + r.id;
+  
+  new QRCode(qrContainer, {
+    text: trackingUrl,
+    width: 120,
+    height: 120,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.H
+  });
+
+  // 4. Chamar a caixa de impressão do browser
+  // Um pequeno delay para garantir que o QRCode renderizou a imagem
+  setTimeout(() => {
+    window.print();
+  }, 300);
+}
+
 
 /* ── Create ── */
 function openCreateReparacao() {
@@ -230,7 +298,6 @@ async function submitReparacao(e) {
   const vId = document.getElementById('rep-viatura').value;
   const mId = document.getElementById('rep-mecanico').value;
   
-  // Obter o cliente_id a partir da viatura selecionada no mapa
   const viatura = viaturaMap[parseInt(vId)];
   const clienteId = viatura?.clienteId || viatura?.cliente?.id;
 
@@ -288,5 +355,147 @@ async function deleteReparacao(id) {
     await loadReparacoes();
   } catch (err) {
     showToast('Erro: ' + err.message, 'error');
+  }
+}
+
+/* ========================================================
+   LÓGICA DE FATURAÇÃO / ORÇAMENTAÇÃO
+   ======================================================== */
+
+let linhasMaterial = [];
+
+function openFaturacao() {
+  if (!currentReparacaoView) return;
+  const r = currentReparacaoView;
+
+  // Preencher cabeçalho
+  document.getElementById('fat-rep-id').textContent = r.id;
+  document.getElementById('fat-cliente').textContent = r.clienteNome || '—';
+  document.getElementById('fat-viatura').textContent = r.viaturaMatricula || '—';
+
+  // 🔮 MAGIA AQUI: Auto-preencher com as Peças que o mecânico requisitou!
+  linhasMaterial = [];
+  if (r.pecas && r.pecas.length > 0) {
+    linhasMaterial = r.pecas.map(p => ({
+      desc: p.designacao,
+      qtd: p.quantidade,
+      preco: p.precoUnitario || 0
+    }));
+  }
+  
+  // Calcular e desenhar a tabela (Mão de obra + Peças)
+  calcularFatura();
+  
+  hideModal('modal-detail'); 
+  showModal('modal-faturacao'); 
+}
+
+function adicionarLinhaMaterial() {
+  linhasMaterial.push({ desc: '', qtd: 1, preco: 0 });
+  calcularFatura();
+}
+
+function removerLinhaMaterial(index) {
+  linhasMaterial.splice(index, 1);
+  calcularFatura();
+}
+
+function atualizarMaterial(index, campo, valor) {
+  linhasMaterial[index][campo] = valor;
+  calcularFatura();
+}
+
+function calcularFatura() {
+  const r = currentReparacaoView;
+  if (!r) return;
+
+  const taxaHoraria = parseFloat(document.getElementById('taxa-horaria').value) || 0;
+  let subtotalMaoObra = 0;
+
+  // 1. PROCESSAR MÃO DE OBRA (Vem do Tablet do Mecânico)
+  const tbodyMaoObra = document.getElementById('fat-maodeobra-tbody');
+  if (r.operacoes && r.operacoes.length > 0) {
+    tbodyMaoObra.innerHTML = r.operacoes.map(op => {
+      // Usa o tempo real se existir, senão usa o estimado (ou 0)
+      const minutos = op.tempoRealMinutos || op.tempoEstimadoMinutos || 0;
+      const horas = minutos / 60;
+      const valorLinha = horas * taxaHoraria;
+      subtotalMaoObra += valorLinha;
+
+      return `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(op.descricao)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${minutos} min (${horas.toFixed(2)}h)</td>
+          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right;">${formatCurrency(valorLinha)}</td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    tbodyMaoObra.innerHTML = `<tr><td colspan="3" style="padding: 15px; text-align: center; color: #64748b;">Sem operações registadas.</td></tr>`;
+  }
+
+  // 2. PROCESSAR MATERIAIS / PEÇAS (Adicionados manualmente no ecrã)
+  let subtotalMateriais = 0;
+  const tbodyMateriais = document.getElementById('fat-materiais-tbody');
+  
+  if (linhasMaterial.length > 0) {
+    tbodyMateriais.innerHTML = linhasMaterial.map((linha, index) => {
+      const valorLinha = linha.qtd * linha.preco;
+      subtotalMateriais += valorLinha;
+      return `
+        <tr>
+          <td style="padding: 5px;"><input type="text" value="${linha.desc}" onchange="atualizarMaterial(${index}, 'desc', this.value)" placeholder="Óleo Motor 5W30" style="width: 100%; padding: 5px;"></td>
+          <td style="padding: 5px;"><input type="number" value="${linha.qtd}" min="1" onchange="atualizarMaterial(${index}, 'qtd', parseFloat(this.value))" style="width: 60px; padding: 5px;"></td>
+          <td style="padding: 5px;"><input type="number" value="${linha.preco}" min="0" step="0.01" onchange="atualizarMaterial(${index}, 'preco', parseFloat(this.value))" style="width: 80px; padding: 5px;"> €</td>
+          <td style="padding: 8px; text-align: right; font-weight: bold;">${formatCurrency(valorLinha)}</td>
+          <td style="padding: 8px; text-align: center;"><button onclick="removerLinhaMaterial(${index})" style="background: none; border: none; color: red; cursor: pointer; font-size: 16px;">🗑️</button></td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    tbodyMateriais.innerHTML = `<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">Nenhuma peça adicionada.</td></tr>`;
+  }
+
+  // 3. CALCULAR TOTAIS
+  const subtotalGeral = subtotalMaoObra + subtotalMateriais;
+  const iva = subtotalGeral * 0.23; // IVA a 23%
+  const totalGeral = subtotalGeral + iva;
+
+  document.getElementById('fat-subtotal').textContent = formatCurrency(subtotalGeral);
+  document.getElementById('fat-iva').textContent = formatCurrency(iva);
+  document.getElementById('fat-total').textContent = formatCurrency(totalGeral);
+  
+  // Guardamos o valor final no dataset do botão para o podermos salvar na BD a seguir
+  document.getElementById('fat-total').dataset.valorcru = totalGeral.toFixed(2);
+}
+
+async function guardarFaturacao() {
+  const r = currentReparacaoView;
+  const valorFinalString = document.getElementById('fat-total').dataset.valorcru;
+  const valorFinal = parseFloat(valorFinalString);
+
+  if (isNaN(valorFinal) || valorFinal <= 0) {
+    showToast('O valor da fatura tem de ser superior a zero.', 'warning');
+    return;
+  }
+
+  try {
+    // Como a API só precisa de atualizar o valorTotal, mandamos o payload necessário
+    await api.updateReparacao(r.id, {
+      viaturaId: r.viaturaId,
+      clienteId: r.clienteId,
+      mecanicoId: r.mecanicoId,
+      descricao: r.descricao,
+      valorTotal: valorFinal // <--- MAGIA ACONTECE AQUI
+    });
+
+    showToast(`Faturação de ${formatCurrency(valorFinal)} guardada com sucesso!`, 'success');
+    hideModal('modal-faturacao');
+    
+    // Recarrega a tabela e atualiza os gráficos do Dashboard
+    await loadReparacoes(); 
+    
+  } catch (err) {
+    showToast('Erro ao guardar faturação: ' + err.message, 'error');
   }
 }

@@ -3,14 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SGO – Peças &amp; Stock</title>
+  <title>SGO – Gestão de Armazém</title>
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .stock-badge { padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block; min-width: 50px; text-align: center; }
+    .stock-good { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; }
+    .stock-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid #f59e0b; animation: pulse-border 2s infinite; }
+    .stock-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; }
+    @keyframes pulse-border { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); } 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); } }
+    .movimento-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+    .mov-btn { flex: 1; padding: 15px 10px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-color); font-weight: bold; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .mov-btn.active { border-color: var(--primary-color); background: rgba(59, 130, 246, 0.1); color: var(--primary-color); }
+    .part-info-bar { background: #1e293b; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Paginação */
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px; padding: 15px; border-top: 1px solid var(--border); }
+    .pagination button { padding: 8px 15px; border-radius: 6px; font-weight: bold; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-color); cursor: pointer; }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pagination span { font-weight: bold; color: var(--text-color); }
+    
+    /* Histórico Tabela */
+    .hist-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .hist-table th, .hist-table td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    .mov-entrada { color: #10b981; font-weight: bold; }
+    .mov-saida { color: #ef4444; font-weight: bold; }
+  </style>
 </head>
 <body class="app-layout">
 
   <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-  <!-- ── Sidebar ── -->
   <nav class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">
@@ -26,13 +48,13 @@
       <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
       <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
       <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
-      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="pecas.html" class="active"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
       <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
       <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
     </ul>
     <div class="theme-toggle">
       <span class="theme-toggle-icon">☀️</span>
-      <label class="theme-switch" title="Alternar tema claro/escuro">
+      <label class="theme-switch" title="Alternar tema">
         <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
         <span class="theme-slider"></span>
       </label>
@@ -50,216 +72,118 @@
     </div>
   </nav>
 
-  <!-- ── Main ── -->
   <div class="main-content">
     <header class="page-header">
       <div class="page-header-left">
         <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
-        <div>
-          <h1 class="page-title">📦 Peças &amp; Stock</h1>
-          <p class="page-subtitle" id="peca-count">—</p>
-        </div>
+        <h1 class="page-title">📦 Gestão de Armazém</h1>
       </div>
-      <div class="page-header-actions">
-        <button class="btn btn-primary" onclick="openCreatePeca()">+ Nova Peça</button>
+      <div class="page-header-actions" style="display: flex; gap: 10px;">
+        
+        <button id="btn-filter-alerts" class="btn btn-outline-danger" onclick="toggleAlertFilter()">⚠️ Ver Alertas</button>
+
+        <select id="category-filter" class="form-control" onchange="currentPage = 1; renderTable()" style="width: 180px;">
+          <option value="">Todas as Secções</option>
+        </select>
+        
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Pesquisar..." oninput="currentPage = 1; renderTable()">
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ Adicionar Peça</button>
       </div>
     </header>
 
     <main class="page-body">
-
-      <!-- Stock Alert Banner -->
-      <div id="stock-alert-banner" class="hidden alert alert-warning" style="margin-bottom:1rem">
-        <span class="alert-icon">⚠️</span>
-        <div id="stock-alert-text">—</div>
+      <div class="dashboard-kpi-row" style="margin-bottom: 2rem;">
+        <div class="kpi-card" style="border-left: 4px solid #3b82f6;"><div class="kpi-info"><span class="kpi-label">Total Referências</span><h3 class="kpi-value" id="kpi-total-pecas">0</h3></div></div>
+        <div class="kpi-card" style="border-left: 4px solid #ef4444;"><div class="kpi-info"><span class="kpi-label">Alerta Stock</span><h3 class="kpi-value" id="kpi-alertas">0</h3></div></div>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-list', this)">📋 Lista de Peças</button>
-        <button class="tab-btn" onclick="switchTab('tab-movimentos', this)">📊 Movimentos de Stock</button>
-      </div>
-
-      <!-- Tab: List -->
-      <div id="tab-list" class="tab-panel active">
-        <!-- Search + filter -->
-        <div class="d-flex gap-2" style="margin-bottom:1rem; flex-wrap:wrap; align-items:center">
-          <div class="search-bar">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="search-input" placeholder="Pesquisar por referência, designação…"
-                   oninput="handleSearch(this.value)">
+      <div class="card table-card">
+        <div class="card-body p-0">
+          <div class="table-wrapper">
+            <table class="modern-table">
+              <thead><tr><th>Referência</th><th>Secção</th><th>Designação</th><th>Preço</th><th>Stock Atual</th><th class="text-center">Ações</th></tr></thead>
+              <tbody id="table-body"><tr><td colspan="6"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
+            </table>
           </div>
-          <select id="filter-categoria" class="btn btn-secondary btn-sm"
-                  style="padding:.45rem .75rem; min-width:140px" onchange="applyFilters()">
-            <option value="">Todas as categorias</option>
-          </select>
-          <label style="display:flex; align-items:center; gap:.5rem; font-size:.875rem; cursor:pointer">
-            <input type="checkbox" id="filter-baixo" onchange="applyFilters()">
-            Apenas stock baixo
-          </label>
-        </div>
-
-        <!-- Table -->
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Referência</th>
-                <th>Designação</th>
-                <th>Categoria</th>
-                <th>Stock Atual</th>
-                <th>Stock Mínimo</th>
-                <th>Preço Unit.</th>
-                <th>Fornecedor</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="pecas-tbody">
-              <tr><td colspan="8" class="text-center" style="padding:2rem"><div class="spinner"></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Tab: Movimentos -->
-      <div id="tab-movimentos" class="tab-panel">
-        <div class="d-flex gap-2" style="margin-bottom:1rem; align-items:center">
-          <select id="sel-peca-movimentos" style="padding:.5rem .75rem; border:1px solid var(--border); border-radius:var(--radius); min-width:260px"
-                  onchange="loadMovimentos(this.value)">
-            <option value="">Selecionar peça…</option>
-          </select>
-        </div>
-        <div id="movimentos-content">
-          <div class="empty-state">
-            <div class="empty-icon">📊</div>
-            <div class="empty-title">Selecione uma peça</div>
-            <div class="empty-desc">Escolha uma peça para ver o histórico de movimentos de stock.</div>
+          <div class="pagination">
+            <button id="btn-prev" onclick="prevPage()">⬅ Anterior</button>
+            <span id="page-info">Página 1 de 1</span>
+            <button id="btn-next" onclick="nextPage()">Seguinte ➡</button>
           </div>
         </div>
       </div>
-
     </main>
   </div>
 
-  <!-- ── Modal: Nova / Editar Peça ── -->
-  <div id="modal-peca" class="modal-overlay" role="dialog" aria-modal="true">
+  <div id="modal-form" class="modal-overlay" role="dialog">
     <div class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title" id="modal-peca-title">Nova Peça</h3>
-        <button class="modal-close" onclick="hideModal('modal-peca')">✕</button>
-      </div>
-      <form id="form-peca" onsubmit="submitPeca(event)">
+      <div class="modal-header"><h3 id="modal-title">Nova Peça</h3><button class="modal-close" onclick="hideModal('modal-form')">✕</button></div>
+      <form id="data-form" onsubmit="submitForm(event)">
         <div class="modal-body">
-          <input type="hidden" id="peca-id">
+          <input type="hidden" id="item-id">
           <div class="form-row">
+            <div class="form-group"><label>Referência *</label><input type="text" id="item-ref" required></div>
             <div class="form-group">
-              <label for="p-referencia">Referência *</label>
-              <input type="text" id="p-referencia" required placeholder="REF-001">
-            </div>
-            <div class="form-group">
-              <label for="p-categoria">Categoria</label>
-              <input type="text" id="p-categoria" placeholder="Travões, Filtros…" list="categoria-list">
-              <datalist id="categoria-list"></datalist>
+              <label>Secção / Categoria *</label>
+              <select id="item-categoria" required onchange="toggleOutrosCategoria()">
+                <option value="">Selecione...</option>
+                <option value="Óleos e Fluidos">Óleos e Fluidos</option>
+                <option value="Filtros">Filtros</option>
+                <option value="Travões">Travões</option>
+                <option value="Suspensão e Direção">Suspensão e Direção</option>
+                <option value="Motor e Escape">Motor e Escape</option>
+                <option value="Baterias e Eletricidade">Baterias e Eletricidade</option>
+                <option value="Pneus e Jantes">Pneus e Jantes</option>
+                <option value="Outros">Outros (Especificar)</option>
+              </select>
+              <input type="text" id="item-categoria-outros" placeholder="Escreva a nova secção..." style="display: none; margin-top: 8px;" class="form-control">
             </div>
           </div>
-          <div class="form-group">
-            <label for="p-designacao">Designação *</label>
-            <input type="text" id="p-designacao" required placeholder="Pastilha de travão dianteira">
-          </div>
+          <div class="form-group"><label>Designação *</label><input type="text" id="item-desc" required></div>
           <div class="form-row">
-            <div class="form-group">
-              <label for="p-stock">Stock Atual</label>
-              <input type="number" id="p-stock" min="0" value="0">
-            </div>
-            <div class="form-group">
-              <label for="p-stock-min">Stock Mínimo</label>
-              <input type="number" id="p-stock-min" min="0" value="5">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="p-preco">Preço Unitário (€) *</label>
-              <input type="number" id="p-preco" required min="0" step="0.01" placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label for="p-fornecedor">Fornecedor</label>
-              <input type="text" id="p-fornecedor" placeholder="Auto Parts SA">
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="p-localizacao">Localização no Armazém</label>
-            <input type="text" id="p-localizacao" placeholder="Prateleira A2, Caixa 3">
-          </div>
-          <div class="form-group">
-            <label for="p-descricao">Descrição / Notas</label>
-            <textarea id="p-descricao" rows="2"></textarea>
+            <div class="form-group"><label>Stock Inicial *</label><input type="number" id="item-stock" required value="0"></div>
+            <div class="form-group"><label>Alerta Mínimo *</label><input type="number" id="item-minimo" required value="5"></div>
+            <div class="form-group"><label>Preço (€) *</label><input type="number" id="item-preco" step="0.01" required></div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-peca')">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Guardar</button>
-        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="hideModal('modal-form')">Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
       </form>
     </div>
   </div>
 
-  <!-- ── Modal: Entrada Stock ── -->
-  <div id="modal-entrada" class="modal-overlay" role="dialog" aria-modal="true">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h3 class="modal-title">📥 Entrada de Stock</h3>
-        <button class="modal-close" onclick="hideModal('modal-entrada')">✕</button>
-      </div>
-      <form id="form-entrada" onsubmit="submitEntrada(event)">
+  <div id="modal-movimento" class="modal-overlay" role="dialog">
+    <div class="modal modal-md">
+      <div class="modal-header"><h3 class="modal-title">🔄 Registar Movimento</h3><button class="modal-close" onclick="hideModal('modal-movimento')">✕</button></div>
+      <form id="form-movimento" onsubmit="submitMovimento(event)">
         <div class="modal-body">
-          <input type="hidden" id="entrada-peca-id">
-          <p id="entrada-peca-nome" style="font-weight:600; margin-bottom:.5rem">—</p>
-          <div class="form-group">
-            <label for="entrada-qty">Quantidade *</label>
-            <input type="number" id="entrada-qty" required min="1" value="1">
+          <input type="hidden" id="mov-peca-id">
+          <div class="part-info-bar"><div><h4 class="part-name" id="mov-peca-desc"></h4></div><div><h4 class="part-stock" id="mov-peca-atual"></h4></div></div>
+          <div class="movimento-selector">
+            <div class="mov-btn active" id="btn-entrada" onclick="selectMovimento('ENTRADA')"><span>📥 Entrada</span></div>
+            <div class="mov-btn" id="btn-saida" onclick="selectMovimento('SAIDA')"><span>📤 Saída</span></div>
           </div>
-          <div class="form-group">
-            <label for="entrada-preco">Preço de Custo (€)</label>
-            <input type="number" id="entrada-preco" min="0" step="0.01" placeholder="0.00">
-          </div>
-          <div class="form-group">
-            <label for="entrada-obs">Observações</label>
-            <input type="text" id="entrada-obs" placeholder="Nota de encomenda…">
-          </div>
+          <input type="hidden" id="mov-tipo" value="ENTRADA">
+          <div class="form-group"><label id="lbl-quantidade">Quantidade *</label><input type="number" id="mov-qtd" required min="1" value="1"></div>
+          <div class="form-group"><label>Observações</label><input type="text" id="mov-obs" placeholder="Motivo..."></div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-entrada')">Cancelar</button>
-          <button type="submit" class="btn btn-success">Registar Entrada</button>
-        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary" id="btn-confirmar-mov">Confirmar</button></div>
       </form>
     </div>
   </div>
 
-  <!-- ── Modal: Saída Stock ── -->
-  <div id="modal-saida" class="modal-overlay" role="dialog" aria-modal="true">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h3 class="modal-title">📤 Saída de Stock</h3>
-        <button class="modal-close" onclick="hideModal('modal-saida')">✕</button>
+  <div id="modal-historico" class="modal-overlay" role="dialog">
+    <div class="modal modal-lg">
+      <div class="modal-header"><h3 class="modal-title">📜 Histórico de Movimentos</h3><button class="modal-close" onclick="hideModal('modal-historico')">✕</button></div>
+      <div class="modal-body" style="background: var(--bg); max-height: 400px; overflow-y: auto;">
+        <h4 style="margin:0; color:var(--primary-color);" id="hist-peca-desc"></h4>
+        <table class="hist-table">
+          <thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Observações</th></tr></thead>
+          <tbody id="hist-body"></tbody>
+        </table>
       </div>
-      <form id="form-saida" onsubmit="submitSaida(event)">
-        <div class="modal-body">
-          <input type="hidden" id="saida-peca-id">
-          <p id="saida-peca-nome" style="font-weight:600; margin-bottom:.5rem">—</p>
-          <p id="saida-stock-atual" style="font-size:.8rem; color:var(--text-secondary); margin-bottom:.75rem">—</p>
-          <div class="form-group">
-            <label for="saida-qty">Quantidade *</label>
-            <input type="number" id="saida-qty" required min="1" value="1">
-          </div>
-          <div class="form-group">
-            <label for="saida-obs">Observações</label>
-            <input type="text" id="saida-obs" placeholder="Motivo…">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="hideModal('modal-saida')">Cancelar</button>
-          <button type="submit" class="btn btn-warning">Registar Saída</button>
-        </div>
-      </form>
     </div>
   </div>
 

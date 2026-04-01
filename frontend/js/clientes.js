@@ -8,6 +8,7 @@ let allClientes     = [];
 let filteredClientes = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!initProtectedPage(['MANAGER', 'ADMIN', 'RECEPTION'])) return;
   if (!initProtectedPage(['MANAGER', 'RECEPTION'])) return;
   await loadClientes();
 });

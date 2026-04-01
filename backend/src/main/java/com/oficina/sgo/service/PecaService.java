@@ -25,19 +25,27 @@ public class PecaService {
 
     private final EntityManagerFactory emf;
     private final PecaDao pecaDao;
-    private final MovimentoStockDao movimentoStockDao;
+    private final MovimentoStockDao movimentoDao;
     private final ReparacaoDao reparacaoDao;
 
     public PecaService(EntityManagerFactory emf) {
         this.emf = emf;
         this.pecaDao = new PecaDao();
-        this.movimentoStockDao = new MovimentoStockDao();
+        this.movimentoDao = new MovimentoStockDao();
         this.reparacaoDao = new ReparacaoDao();
     }
 
     public List<PecaResponse> findAll() {
         try (EntityManager em = emf.createEntityManager()) {
             return pecaDao.findAll(em).stream().map(this::toResponse).collect(Collectors.toList());
+        }
+    }
+
+    public List<PecaResponse> findAlertasStock() {
+        try (EntityManager em = emf.createEntityManager()) {
+            return pecaDao.findAll(em).stream()
+                    .filter(p -> p.getQuantidadeStock() != null && p.getStockMinimo() != null && p.getQuantidadeStock() <= p.getStockMinimo())
+                    .map(this::toResponse).collect(Collectors.toList());
         }
     }
 
@@ -48,25 +56,16 @@ public class PecaService {
         }
     }
 
-    public List<PecaResponse> findAlertasStock() {
-        try (EntityManager em = emf.createEntityManager()) {
-            return pecaDao.findPecasComStockBaixo(em).stream().map(this::toResponse).collect(Collectors.toList());
-        }
-    }
-
     public PecaResponse create(CreatePecaRequest request) {
         return inTransaction(em -> {
-            if (pecaDao.existsByReferencia(em, request.referencia())) {
-                throw new BusinessException("Referencia already exists: " + request.referencia());
-            }
             Peca peca = Peca.builder()
                     .referencia(request.referencia())
                     .designacao(request.designacao())
-                    .precoUnitario(request.precoUnitario())
                     .quantidadeStock(request.quantidadeStock() != null ? request.quantidadeStock() : 0)
-                    .stockMinimo(request.stockMinimo() != null ? request.stockMinimo() : 0)
-                    .categoria(request.categoria())
-                    .fornecedor(request.fornecedor())
+                    .stockMinimo(request.stockMinimo() != null ? request.stockMinimo() : 5)
+                    .precoUnitario(request.precoUnitario())
+                    .categoria(request.categoria()) // NOVO
+                    .fornecedor(request.fornecedor()) // NOVO
                     .build();
             return toResponse(pecaDao.save(em, peca));
         });
@@ -76,24 +75,23 @@ public class PecaService {
         return inTransaction(em -> {
             Peca peca = pecaDao.findById(em, id)
                     .orElseThrow(() -> new ResourceNotFoundException("Peca", id));
-            if (!peca.getReferencia().equals(request.referencia()) && pecaDao.existsByReferencia(em, request.referencia())) {
-                throw new BusinessException("Referencia already exists: " + request.referencia());
-            }
-            peca.setReferencia(request.referencia());
-            peca.setDesignacao(request.designacao());
-            peca.setPrecoUnitario(request.precoUnitario());
+            
+            if (request.referencia() != null) peca.setReferencia(request.referencia());
+            if (request.designacao() != null) peca.setDesignacao(request.designacao());
             if (request.stockMinimo() != null) peca.setStockMinimo(request.stockMinimo());
-            if (request.categoria() != null) peca.setCategoria(request.categoria());
-            if (request.fornecedor() != null) peca.setFornecedor(request.fornecedor());
+            if (request.precoUnitario() != null) peca.setPrecoUnitario(request.precoUnitario());
+            if (request.categoria() != null) peca.setCategoria(request.categoria()); // NOVO
+            if (request.fornecedor() != null) peca.setFornecedor(request.fornecedor()); // NOVO
+            
             return toResponse(pecaDao.save(em, peca));
         });
     }
 
-    public void delete(Long id) {
-        inTransaction(em -> {
+    public Void delete(Long id) {
+        return inTransaction(em -> {
             Peca peca = pecaDao.findById(em, id)
                     .orElseThrow(() -> new ResourceNotFoundException("Peca", id));
-            pecaDao.delete(em, peca);
+            em.remove(peca);
             return null;
         });
     }
@@ -102,15 +100,17 @@ public class PecaService {
         return inTransaction(em -> {
             Peca peca = pecaDao.findById(em, id)
                     .orElseThrow(() -> new ResourceNotFoundException("Peca", id));
+            
             peca.setQuantidadeStock(peca.getQuantidadeStock() + request.quantidade());
-            MovimentoStock movimento = MovimentoStock.builder()
+            
+            MovimentoStock mov = MovimentoStock.builder()
                     .peca(peca)
                     .tipoMovimento(MovimentoStock.TipoMovimento.ENTRADA)
                     .quantidade(request.quantidade())
                     .dataMovimento(LocalDateTime.now())
                     .observacoes(request.observacoes())
                     .build();
-            movimentoStockDao.save(em, movimento);
+            movimentoDao.save(em, mov);
             return toResponse(pecaDao.save(em, peca));
         });
     }
@@ -119,18 +119,20 @@ public class PecaService {
         return inTransaction(em -> {
             Peca peca = pecaDao.findById(em, id)
                     .orElseThrow(() -> new ResourceNotFoundException("Peca", id));
+            
             if (peca.getQuantidadeStock() < request.quantidade()) {
-                throw new BusinessException("Insufficient stock. Available: " + peca.getQuantidadeStock());
+                throw new BusinessException("Stock insuficiente");
             }
             peca.setQuantidadeStock(peca.getQuantidadeStock() - request.quantidade());
-            MovimentoStock movimento = MovimentoStock.builder()
+            
+            MovimentoStock mov = MovimentoStock.builder()
                     .peca(peca)
                     .tipoMovimento(MovimentoStock.TipoMovimento.SAIDA)
-                    .quantidade(request.quantidade())
+                    .quantidade(-request.quantidade())
                     .dataMovimento(LocalDateTime.now())
                     .observacoes(request.observacoes())
                     .build();
-            movimentoStockDao.save(em, movimento);
+            movimentoDao.save(em, mov);
             return toResponse(pecaDao.save(em, peca));
         });
     }
@@ -139,30 +141,52 @@ public class PecaService {
         return inTransaction(em -> {
             Peca peca = pecaDao.findById(em, request.pecaId())
                     .orElseThrow(() -> new ResourceNotFoundException("Peca", request.pecaId()));
+
             if (peca.getQuantidadeStock() < request.quantidade()) {
-                throw new BusinessException("Insufficient stock. Available: " + peca.getQuantidadeStock());
+                throw new BusinessException("Stock insuficiente para a peça " + peca.getDesignacao());
             }
-            Reparacao reparacao = reparacaoDao.findById(em, request.reparacaoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Reparacao", request.reparacaoId()));
+
             peca.setQuantidadeStock(peca.getQuantidadeStock() - request.quantidade());
+
+            Reparacao reparacao = null;
+            if (request.reparacaoId() != null) {
+                reparacao = em.find(Reparacao.class, request.reparacaoId());
+            }
+
             MovimentoStock movimento = MovimentoStock.builder()
                     .peca(peca)
-                    .tipoMovimento(MovimentoStock.TipoMovimento.REQUISICAO_REPARACAO)
-                    .quantidade(request.quantidade())
+                    .tipoMovimento(MovimentoStock.TipoMovimento.SAIDA)
+                    .quantidade(-request.quantidade())
                     .dataMovimento(LocalDateTime.now())
-                    .reparacao(reparacao)
                     .observacoes(request.observacoes())
+                    .reparacao(reparacao)
                     .build();
-            movimentoStockDao.save(em, movimento);
+
+            movimentoDao.save(em, movimento);
             return toResponse(pecaDao.save(em, peca));
         });
     }
 
     private PecaResponse toResponse(Peca p) {
-        return new PecaResponse(p.getId(), p.getReferencia(), p.getDesignacao(),
+        boolean isStockBaixo = p.getQuantidadeStock() != null && p.getStockMinimo() != null 
+                               && p.getQuantidadeStock() <= p.getStockMinimo();
+
+        // NOVO: Vai buscar o Histórico todo de movimentos e envia para o ecrã!
+        List<PecaResponse.Movimento> movs = p.getMovimentos() != null ? 
+            p.getMovimentos().stream()
+            .map(m -> new PecaResponse.Movimento(
+                m.getId(), 
+                m.getTipoMovimento().name(), 
+                m.getQuantidade(), 
+                m.getDataMovimento(), 
+                m.getObservacoes()
+            )).collect(Collectors.toList()) : List.of();
+
+        return new PecaResponse(
+                p.getId(), p.getReferencia(), p.getDesignacao(),
                 p.getQuantidadeStock(), p.getStockMinimo(), p.getPrecoUnitario(),
-                p.getCategoria(), p.getFornecedor(),
-                p.getQuantidadeStock() <= p.getStockMinimo());
+                p.getCategoria(), p.getFornecedor(), isStockBaixo, movs
+        );
     }
 
     private <T> T inTransaction(Function<EntityManager, T> action) {

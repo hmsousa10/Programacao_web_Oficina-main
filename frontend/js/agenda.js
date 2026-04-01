@@ -16,6 +16,7 @@ let mecanicos        = [];
 let currentAgId      = null;    // currently viewed agendamento id
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!initProtectedPage(['MANAGER', 'ADMIN', 'RECEPTION'])) return;
   if (!initProtectedPage(['MANAGER', 'RECEPTION'])) return;
   await Promise.allSettled([loadClientes(), loadMecanicos()]);
   await loadAgenda();

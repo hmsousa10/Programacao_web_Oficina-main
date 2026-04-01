@@ -6,167 +6,44 @@
   <title>SGO – Painel Mecânico</title>
   <link rel="stylesheet" href="css/styles.css">
   <style>
-    /* =========================================================
-       ESTILOS EXCLUSIVOS DA PÁGINA 2 (DETALHES DA INTERVENÇÃO)
-       ========================================================= */
-    
-    /* Barra de Topo Escura */
-    .intervention-top-bar {
-      background: #1e293b; /* Slate 800 */
-      color: white;
-      padding: 1rem 1.5rem;
-      border-radius: var(--radius) var(--radius) 0 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-    .intervention-badge {
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    .badge-execucao { background: #ef4444; color: white; } /* Vermelho */
+    /* ESTILOS DA PÁGINA 2 E IMPRESSÃO (Ocultos) */
+    .intervention-top-bar { background: #1e293b; color: white; padding: 1rem 1.5rem; border-radius: var(--radius) var(--radius) 0 0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .intervention-badge { padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px; }
+    .badge-execucao { background: #ef4444; color: white; } 
     .badge-pendente { background: #f59e0b; color: white; }
     .badge-concluida { background: #10b981; color: white; }
-    
-    .intervention-timer {
-      font-family: monospace;
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #38bdf8; /* Azul claro para destacar o tempo */
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    /* Cabeçalho de Informação do Veículo */
-    .intervention-header {
-      background: var(--card-bg);
-      padding: 1.5rem;
-      border-radius: 0 0 var(--radius) var(--radius);
-      border: 1px solid var(--border);
-      border-top: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-    .vehicle-main-info {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-    .plate-highlight {
-      background: white;
-      color: black;
-      border: 2px solid #cbd5e1;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      font-size: 1.25rem;
-      font-weight: 800;
-      letter-spacing: 2px;
-      border-left: 8px solid #2563eb; /* Barra lateral azul */
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
+    .intervention-timer { font-family: monospace; font-size: 1.5rem; font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; }
+    .intervention-header { background: var(--card-bg); padding: 1.5rem; border-radius: 0 0 var(--radius) var(--radius); border: 1px solid var(--border); border-top: none; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .vehicle-main-info { display: flex; align-items: center; gap: 1.5rem; }
+    .plate-highlight { background: white; color: black; border: 2px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; font-size: 1.25rem; font-weight: 800; letter-spacing: 2px; border-left: 8px solid #2563eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .vehicle-text h2 { margin: 0; font-size: 1.5rem; color: var(--text-color); }
     .vehicle-text p { margin: 0; color: var(--text-muted); font-size: 1rem; }
     .client-info { text-align: right; }
     .client-info h3 { margin: 0; font-size: 1.1rem; color: var(--text-color); }
     .client-info p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
-
-    /* Barra de Progresso (Stepper) */
-    .stepper-wrapper {
-      background: var(--card-bg);
-      padding: 2.5rem 2rem;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      margin-bottom: 2rem;
-    }
-    .stepper-container {
-      display: flex;
-      justify-content: space-between;
-      position: relative;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .stepper-container::before {
-      content: '';
-      position: absolute;
-      top: 20px;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: var(--border);
-      z-index: 1;
-    }
-    .step {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .step-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--card-bg);
-      border: 4px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      color: var(--text-muted);
-      transition: all 0.3s ease;
-    }
-    .step.completed .step-icon {
-      border-color: #10b981;
-      background: #10b981;
-      color: white;
-    }
-    .step.active .step-icon {
-      border-color: #3b82f6;
-      background: #3b82f6;
-      color: white;
-      box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.2);
-    }
-    .step-label {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
+    
+    /* LÓGICA DO STEPPER COM LINHA ANIMADA */
+    .stepper-wrapper { background: var(--card-bg); padding: 2.5rem 2rem; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 2rem; }
+    .stepper-container { display: flex; justify-content: space-between; position: relative; max-width: 800px; margin: 0 auto; }
+    /* Linha cinzenta de fundo */
+    .stepper-container::before { content: ''; position: absolute; top: 20px; left: 0; right: 0; height: 4px; background: var(--border); z-index: 1; border-radius: 2px; }
+    /* Linha verde animada (NOVO) */
+    .stepper-progress { position: absolute; top: 20px; left: 0; height: 4px; background: #10b981; z-index: 2; transition: width 0.5s ease-in-out; border-radius: 2px; }
+    
+    .step { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; transition: transform 0.2s; cursor: pointer; }
+    .step:hover { transform: scale(1.1); } 
+    .step-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--card-bg); border: 4px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--text-muted); transition: all 0.3s ease; }
+    .step.completed .step-icon { border-color: #10b981; background: #10b981; color: white; }
+    .step.active .step-icon { border-color: #3b82f6; background: #3b82f6; color: white; box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.2); }
+    .step-label { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
     .step.active .step-label { color: var(--primary-color); }
     .step.completed .step-label { color: var(--text-color); }
-
-    /* Cartões de Ação (Bottom) */
-    .action-cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-    }
-    .action-card {
-      padding: 2.5rem 1.5rem;
-      border-radius: var(--radius);
-      text-align: center;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-    }
-    .action-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-    }
+    
+    .action-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+    .action-card { padding: 2.5rem 1.5rem; border-radius: var(--radius); text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: none; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    .action-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
     .action-card-icon { font-size: 3.5rem; }
     .action-card-title { font-size: 1.25rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-    
     .card-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .card-yellow { background: #fef08a; color: #854d0e; border: 1px solid #fde047; }
     .card-green { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
@@ -201,11 +78,7 @@
         <button id="btn-voltar-global" class="btn btn-secondary btn-sm" onclick="logout()">⬅ Voltar</button>
         <h1 class="page-title" style="margin: 0;">👨‍🔧 Painel Mecânico</h1>
       </div>
-      
-      <div class="page-header-center header-user-name">
-        <span id="top-user-name">Bem-vindo</span>
-      </div>
-
+      <div class="page-header-center header-user-name"><span id="top-user-name">Bem-vindo</span></div>
       <div class="page-header-actions" id="header-actions">
         <div class="theme-toggle" style="margin: 0; padding: 0;">
           <span class="theme-toggle-icon">☀️</span>
@@ -220,69 +93,28 @@
     </header>
 
     <main class="page-body">
-      
       <div id="view-dashboard" class="view-section active">
-        
         <div id="admin-filter-container" style="display: none; margin-bottom: 1.5rem; background: var(--card-bg); padding: 1rem 1.5rem; border-radius: var(--radius); border-left: 5px solid var(--primary-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); align-items: center; gap: 1rem;">
-            <label for="mecanico-selector" style="font-weight: 600; color: var(--text-color); margin: 0;">
-                <span style="margin-right: 5px;">👥</span> Visão de Gestão (Filtrar por Mecânico):
-            </label>
+            <label for="mecanico-selector" style="font-weight: 600; color: var(--text-color); margin: 0;"><span style="margin-right: 5px;">👥</span> Visão de Gestão (Filtrar por Mecânico):</label>
             <select id="mecanico-selector" onchange="loadMyRepairs(this.value)" style="padding: 0.5rem 1rem; border-radius: 6px; background: var(--bg); color: var(--text-color); border: 1px solid var(--border); min-width: 300px; font-family: inherit; font-size: 0.95rem; cursor: pointer;">
                 <option value="">🌍 Oficina Inteira (Todos os Mecânicos)</option>
             </select>
         </div>
 
         <div class="dashboard-kpi-row">
-          <div class="kpi-card" id="kpi-card-1">
-            <div class="kpi-icon" style="background: rgba(234, 179, 8, 0.1); color: #eab308;">⏳</div>
-            <div class="kpi-info">
-              <span class="kpi-label" id="kpi-label-1">Pendentes</span>
-              <h3 class="kpi-value" id="kpi-pendentes">0</h3>
-            </div>
-          </div>
-          <div class="kpi-card" id="kpi-card-2">
-            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">🔧</div>
-            <div class="kpi-info">
-              <span class="kpi-label" id="kpi-label-2">Em Progresso</span>
-              <h3 class="kpi-value" id="kpi-progresso">0</h3>
-            </div>
-          </div>
-          <div class="kpi-card" id="kpi-card-3">
-            <div class="kpi-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">📦</div>
-            <div class="kpi-info">
-              <span class="kpi-label" id="kpi-label-3">Aguarda Peças</span>
-              <h3 class="kpi-value" id="kpi-pecas">0</h3>
-            </div>
-          </div>
-          <div class="kpi-card" id="kpi-card-4">
-            <div class="kpi-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">✅</div>
-            <div class="kpi-info">
-              <span class="kpi-label" id="kpi-label-4">Concluídos</span>
-              <h3 class="kpi-value" id="kpi-concluidos">0</h3>
-            </div>
-          </div>
+          <div class="kpi-card" id="kpi-card-1"><div class="kpi-icon" style="background: rgba(234, 179, 8, 0.1); color: #eab308;">⏳</div><div class="kpi-info"><span class="kpi-label">Pendentes</span><h3 class="kpi-value" id="kpi-pendentes">0</h3></div></div>
+          <div class="kpi-card" id="kpi-card-2"><div class="kpi-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">🔧</div><div class="kpi-info"><span class="kpi-label">Em Progresso</span><h3 class="kpi-value" id="kpi-progresso">0</h3></div></div>
+          <div class="kpi-card" id="kpi-card-3"><div class="kpi-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">📦</div><div class="kpi-info"><span class="kpi-label">Aguarda Peças</span><h3 class="kpi-value" id="kpi-pecas">0</h3></div></div>
+          <div class="kpi-card" id="kpi-card-4"><div class="kpi-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">✅</div><div class="kpi-info"><span class="kpi-label">Concluídos</span><h3 class="kpi-value" id="kpi-concluidos">0</h3></div></div>
         </div>
 
         <div class="card table-card mt-2">
-          <div class="card-header">
-            <h2 class="card-title">📋 Fila de Trabalho</h2>
-          </div>
+          <div class="card-header"><h2 class="card-title">📋 Fila de Trabalho</h2></div>
           <div class="card-body p-0">
             <div class="table-wrapper">
               <table class="modern-table">
-                <thead>
-                  <tr>
-                    <th>Matrícula</th>
-                    <th>Veículo</th>
-                    <th>Cliente</th>
-                    <th>Mecânico</th>
-                    <th>Estado</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="repair-list">
-                  <tr><td colspan="6"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
-                </tbody>
+                <thead><tr><th>Matrícula</th><th>Veículo</th><th>Cliente</th><th>Mecânico</th><th>Estado</th><th>Ações</th></tr></thead>
+                <tbody id="repair-list"><tr><td colspan="6"><div class="loading-overlay"><div class="spinner"></div></div></td></tr></tbody>
               </table>
             </div>
           </div>
@@ -290,51 +122,49 @@
       </div>
 
       <div id="view-details" class="view-section hidden">
-        <div class="details-nav mb-2">
-          <button class="btn btn-secondary" onclick="backToDashboard()">⬅ Voltar à Fila de Trabalho</button>
-        </div>
-        
+        <div class="details-nav mb-2"><button class="btn btn-secondary" onclick="backToDashboard()">⬅ Voltar à Fila de Trabalho</button></div>
         <div id="details-content-wrapper"></div>
-
       </div>
-
     </main>
+  </div>
+
+  <div id="modal-pausa" class="modal-overlay" style="z-index: 1050;" role="dialog">
+    <div class="modal modal-sm" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Motivo da Pausa</h3>
+        <button class="modal-close" onclick="hideModal('modal-pausa')">✕</button>
+      </div>
+      <div class="modal-body text-center">
+        <p style="margin-bottom: 15px; color: var(--text-muted);">Por favor, indique o motivo para interromper o trabalho:</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="btn btn-secondary" onclick="submitPausa('NORMAL')" style="justify-content: flex-start; padding: 12px; font-size: 1rem; border-color: #64748b;">☕ Pausa Normal / Descanso</button>
+          <button class="btn btn-warning" onclick="submitPausa('PECAS')" style="justify-content: flex-start; padding: 12px; font-size: 1rem; background-color: #f59e0b; color: white; border: none;">📦 Faltam Peças</button>
+          <button class="btn btn-outline-primary" onclick="submitPausa('CLIENTE')" style="justify-content: flex-start; padding: 12px; font-size: 1rem;">📞 Aguardar Decisão do Cliente</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="modal-trabalhos" class="modal-overlay" role="dialog" aria-modal="true">
     <div class="modal modal-lg">
-      <div class="modal-header">
-        <h3 class="modal-title">📋 Checklist & Diagnóstico</h3>
-        <button class="modal-close" onclick="hideModal('modal-trabalhos')">✕</button>
-      </div>
+      <div class="modal-header"><h3 class="modal-title">📋 Checklist & Diagnóstico</h3><button class="modal-close" onclick="hideModal('modal-trabalhos')">✕</button></div>
       <div class="modal-body" style="background: var(--bg);">
         <div class="card p-0 mb-2">
-          <div class="card-header" style="display: flex; justify-content: space-between;">
-            <h3 class="card-title">🔩 Operações / Problemas Encontrados</h3>
-            <button class="btn btn-primary btn-sm" onclick="openOpModal()">+ Adicionar Operação</button>
-          </div>
+          <div class="card-header" style="display: flex; justify-content: space-between;"><h3 class="card-title">🔩 Operações / Problemas Encontrados</h3><button class="btn btn-primary btn-sm" onclick="openOpModal()">+ Adicionar Operação</button></div>
           <div class="card-body"><div id="op-list"></div></div>
         </div>
         <div class="card p-0">
-          <div class="card-header" style="display: flex; justify-content: space-between;">
-            <h3 class="card-title">✅ Checklist de Verificação</h3>
-            <button class="btn btn-secondary btn-sm" onclick="clearChecklist()">Limpar</button>
-          </div>
+          <div class="card-header" style="display: flex; justify-content: space-between;"><h3 class="card-title">✅ Checklist de Verificação</h3><button class="btn btn-secondary btn-sm" onclick="clearChecklist()">Limpar</button></div>
           <div class="card-body"><div class="checklist" id="checklist" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;"></div></div>
         </div>
       </div>
-      <div class="modal-footer" style="background: var(--card-bg);">
-        <button type="button" class="btn btn-secondary" onclick="hideModal('modal-trabalhos')">Guardar e Fechar</button>
-      </div>
+      <div class="modal-footer" style="background: var(--card-bg);"><button type="button" class="btn btn-secondary" onclick="hideModal('modal-trabalhos')">Guardar e Fechar</button></div>
     </div>
   </div>
 
   <div id="modal-gestao-pecas" class="modal-overlay" role="dialog" aria-modal="true">
     <div class="modal modal-lg">
-      <div class="modal-header">
-        <h3 class="modal-title">📦 Requisitar Peças ao Armazém</h3>
-        <button class="modal-close" onclick="hideModal('modal-gestao-pecas')">✕</button>
-      </div>
+      <div class="modal-header"><h3 class="modal-title">📦 Requisitar Peças ao Armazém</h3><button class="modal-close" onclick="hideModal('modal-gestao-pecas')">✕</button></div>
       <div class="modal-body">
         <input type="text" class="form-control" id="peca-search" placeholder="Pesquisar peça pela referência ou nome…" oninput="filterPecas(this.value)" style="margin-bottom:1rem; width: 100%;">
         <div class="table-wrapper" style="max-height:400px; overflow-y:auto;">
@@ -354,9 +184,7 @@
         <div class="modal-body">
           <input type="hidden" id="op-id">
           <div class="form-group"><label>Descrição *</label><input type="text" id="op-descricao" required></div>
-          <div class="form-row">
-            <div class="form-group"><label>Tempo Estimado (min)</label><input type="number" id="op-tempo" min="1"></div>
-          </div>
+          <div class="form-row"><div class="form-group"><label>Tempo Estimado (min)</label><input type="number" id="op-tempo" min="1"></div></div>
           <div class="form-group">
             <label>Estado da Operação</label>
             <select id="op-estado"><option value="PENDENTE">Pendente</option><option value="EM_EXECUCAO">Em Execução</option><option value="CONCLUIDA">Concluída</option></select>

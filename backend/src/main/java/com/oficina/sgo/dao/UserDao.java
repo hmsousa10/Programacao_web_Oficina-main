@@ -9,7 +9,8 @@ import java.util.Optional;
 public class UserDao {
 
     public List<User> findAll(EntityManager em) {
-        return em.createQuery("SELECT u FROM User u", User.class).getResultList();
+        // ⭐ MAGIA AQUI: Agora só vai buscar os utilizadores que estão ATIVOS (active = true)!
+        return em.createQuery("SELECT u FROM User u WHERE u.active = true", User.class).getResultList();
     }
 
     public Optional<User> findById(EntityManager em, Long id) {
@@ -18,20 +19,20 @@ public class UserDao {
 
     public Optional<User> findByUsername(EntityManager em, String username) {
         List<User> list = em.createQuery(
-                "SELECT u FROM User u WHERE u.username = :username", User.class)
+                "SELECT u FROM User u WHERE u.username = :username AND u.active = true", User.class)
                 .setParameter("username", username).getResultList();
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
     public boolean existsByUsername(EntityManager em, String username) {
         Long count = em.createQuery(
-                "SELECT COUNT(u) FROM User u WHERE u.username = :username", Long.class)
+                "SELECT COUNT(u) FROM User u WHERE u.username = :username AND u.active = true", Long.class)
                 .setParameter("username", username).getSingleResult();
         return count > 0;
     }
 
     public long count(EntityManager em) {
-        return em.createQuery("SELECT COUNT(u) FROM User u", Long.class).getSingleResult();
+        return em.createQuery("SELECT COUNT(u) FROM User u WHERE u.active = true", Long.class).getSingleResult();
     }
 
     public User save(EntityManager em, User u) {

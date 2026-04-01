@@ -9,8 +9,8 @@ public record ReparacaoResponse(
         Long agendamentoId,
         Long viaturaId,
         String viaturaMatricula,
-        String viaturaMarca,   // <--- ADICIONADO AQUI
-        String viaturaModelo,  // <--- ADICIONADO AQUI
+        String viaturaMarca,   
+        String viaturaModelo,  
         Long clienteId,
         String clienteNome,
         Long mecanicoId,
@@ -21,5 +21,9 @@ public record ReparacaoResponse(
         String descricao,
         Integer tempoTotalMinutos,
         BigDecimal valorTotal,
-        List<OperacaoResponse> operacoes
-) {}
+        List<OperacaoResponse> operacoes,
+        List<PecaUtilizada> pecas // <--- NOVO: Transportar as peças para a Fatura!
+) {
+    // Mini-registo para levar apenas os dados que a Fatura precisa
+    public record PecaUtilizada(String designacao, Integer quantidade, BigDecimal precoUnitario) {}
+}

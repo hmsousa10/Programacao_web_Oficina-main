@@ -29,8 +29,9 @@ function getCurrentUser() {
 function redirectByRole(user) {
   if (!user) { window.location.href = 'index.html'; return; }
   switch (user.role) {
-    case 'MANAGER':   window.location.href = 'dashboard.html'; break;
-    case 'RECEPTION': window.location.href = 'agenda.html';    break;
+    case 'MANAGER':
+    case 'ADMIN':     window.location.href = 'dashboard.html'; break;
+    case 'RECEPTION': window.location.href = 'agenda.html';    break; // Receção vai direto para a Agenda!
     case 'MECHANIC':  window.location.href = 'mecanico.html';  break;
     default:          window.location.href = 'index.html';
   }
@@ -67,10 +68,9 @@ async function login(username, password) {
   sessionStorage.setItem(TOKEN_KEY, token);
 
   // Capturar o utilizador garantindo que o ID existe (fundamental para o mecânico).
-  // ATENÇÃO: Adicionado o `userData.userId` porque o backend envia a propriedade como "userId"
   const userData = resp.user || resp;
   const userToStore = {
-    id:       userData.id || userData.userId, // Verifica ambos os casos de resposta do backend
+    id:       userData.id || userData.userId, 
     username: userData.username,
     name:     userData.name || userData.username,
     role:     userData.role,
