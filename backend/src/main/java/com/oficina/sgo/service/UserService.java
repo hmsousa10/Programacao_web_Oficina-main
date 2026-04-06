@@ -26,8 +26,15 @@ public class UserService {
     }
 
     public List<UserResponse> findAll() {
+        return findAll(null);
+    }
+
+    public List<UserResponse> findAll(String role) {
         try (EntityManager em = emf.createEntityManager()) {
-            return userDao.findAll(em).stream().map(this::toResponse).collect(Collectors.toList());
+            return userDao.findAll(em).stream()
+                    .filter(u -> role == null || u.getRole().name().equalsIgnoreCase(role))
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
         }
     }
 

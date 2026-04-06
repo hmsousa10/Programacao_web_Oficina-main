@@ -23,15 +23,15 @@ public class Peca {
     @Column(nullable = false)
     private String designacao;
 
-    @Column(nullable = false)
+   @Column(name = "quantidade_stock", nullable = false)
     @Builder.Default
     private Integer quantidadeStock = 0;
 
-    @Column(nullable = false)
+    @Column(name = "stock_minimo", nullable = false)
     @Builder.Default
     private Integer stockMinimo = 0;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(name = "preco_unitario", nullable = false, precision = 10, scale = 2)
     private BigDecimal precoUnitario;
 
     private String categoria;

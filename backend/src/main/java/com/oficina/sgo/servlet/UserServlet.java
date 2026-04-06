@@ -20,11 +20,13 @@ public class UserServlet extends BaseApiServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        if (!requireRole(req, resp, "MANAGER")) return;
+        if (!requireRole(req, resp, "MANAGER", "RECEPTION")) return;
         try {
             String pathInfo = req.getPathInfo();
             if (pathInfo == null || pathInfo.equals("/")) {
-                sendJson(resp, HttpServletResponse.SC_OK, userService.findAll());
+                // LER O PARÂMETRO DA URL
+                String roleParam = req.getParameter("role");
+                sendJson(resp, HttpServletResponse.SC_OK, userService.findAll(roleParam));
             } else {
                 Long id = parseId(pathInfo);
                 if (id == null) { sendError(resp, 400, "Invalid ID"); return; }
