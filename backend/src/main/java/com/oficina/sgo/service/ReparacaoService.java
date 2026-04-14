@@ -89,7 +89,11 @@ public class ReparacaoService {
                     .descricao(request.descricao())
                     .estado(Reparacao.EstadoReparacao.PENDENTE)
                     .build();
-            return toResponse(reparacaoDao.save(em, reparacao));
+            ReparacaoResponse resp = toResponse(reparacaoDao.save(em, reparacao));
+            LogService.success("REPARACOES",
+                "Nova reparação criada: viatura " + viatura.getMatricula() + 
+                " | cliente " + cliente.getNome(), null);
+            return resp;
         });
     }
 
@@ -114,7 +118,14 @@ public class ReparacaoService {
                 reparacao.setDataFim(LocalDateTime.now());
             }
             reparacao.setEstado(novoEstado);
-            return toResponse(reparacaoDao.save(em, reparacao));
+            ReparacaoResponse resp = toResponse(reparacaoDao.save(em, reparacao));
+            LogService.info("REPARACOES",
+                "Reparação #" + id + " alterada para estado: " + novoEstado.name(), null);
+            if (novoEstado == Reparacao.EstadoReparacao.CONCLUIDA) {
+                LogService.success("REPARACOES",
+                    "Reparação #" + id + " concluída com sucesso", null);
+            }
+            return resp;
         });
     }
 

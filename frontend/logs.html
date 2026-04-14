@@ -28,6 +28,7 @@
       <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
       <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
       <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="faturas.html"><span class="nav-icon">💰</span> Faturação</a></li>
       <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
     </ul>
     <div class="theme-toggle">
@@ -75,7 +76,7 @@
       <div class="logs-toolbar">
         <div class="search-bar">
           <span class="search-icon">🔍</span>
-          <input type="text" id="log-search" placeholder="Pesquisar nos logs…" oninput="filterLogs()">
+          <input type="text" id="log-search" placeholder="Pesquisar mensagem…" oninput="filterLogs()">
         </div>
         <select id="log-filter-severity" onchange="filterLogs()">
           <option value="">Todos os níveis</option>
@@ -95,6 +96,9 @@
           <option value="AGENDA">Agenda</option>
           <option value="SISTEMA">Sistema</option>
         </select>
+        <input type="date" id="log-date-from" onchange="filterLogs()" title="De:" style="width:auto">
+        <input type="date" id="log-date-to"   onchange="filterLogs()" title="Até:" style="width:auto">
+        <button class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('#log-search,#log-filter-severity,#log-filter-source,#log-date-from,#log-date-to').forEach(el=>el.value='');filterLogs();">Limpar</button>
       </div>
 
       <!-- Logs Table -->

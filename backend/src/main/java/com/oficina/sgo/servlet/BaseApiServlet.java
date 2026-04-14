@@ -69,6 +69,19 @@ public abstract class BaseApiServlet extends HttpServlet {
         return (User) req.getAttribute("currentUser");
     }
 
+    /** Retorna o username do utilizador autenticado, ou "Sistema" */
+    protected String getUsername(HttpServletRequest req) {
+        User u = getCurrentUser(req);
+        return u != null ? u.getUsername() : "Sistema";
+    }
+
+    /** Retorna o IP real do cliente (suporta proxies) */
+    protected String getClientIp(HttpServletRequest req) {
+        String ip = req.getHeader("X-Forwarded-For");
+        if (ip != null && !ip.isBlank()) return ip.split(",")[0].trim();
+        return req.getRemoteAddr();
+    }
+
     protected boolean hasRole(HttpServletRequest req, String... roles) {
         String role = getRole(req);
         if (role == null) return false;
@@ -85,8 +98,8 @@ public abstract class BaseApiServlet extends HttpServlet {
     }
 
     protected void handleException(HttpServletResponse resp, Exception e) throws IOException {
-    	e.printStackTrace();
-    	if (e instanceof ResourceNotFoundException) {
+        e.printStackTrace();
+        if (e instanceof ResourceNotFoundException) {
             sendError(resp, HttpServletResponse.SC_NOT_FOUND, e.getMessage());
         } else if (e instanceof BusinessException) {
             sendError(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());

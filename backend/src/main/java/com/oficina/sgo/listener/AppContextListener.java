@@ -63,17 +63,21 @@ public class AppContextListener implements ServletContextListener {
         JwtTokenProvider jwtTokenProvider = new JwtTokenProvider(jwtSecret, jwtExpiration);
         ctx.setAttribute("jwtTokenProvider", jwtTokenProvider);
 
-        ctx.setAttribute("authService", new AuthService(emf, jwtTokenProvider));
-        ctx.setAttribute("clienteService", new ClienteService(emf));
-        ctx.setAttribute("viaturaService", new ViaturaService(emf));
+        // ── Registar todos os services ──
+        LogService logService = new LogService(emf); // criar PRIMEIRO para os outros poderem usar
+        ctx.setAttribute("logService",    logService);
+        ctx.setAttribute("authService",   new AuthService(emf, jwtTokenProvider));
+        ctx.setAttribute("clienteService",new ClienteService(emf));
+        ctx.setAttribute("viaturaService",new ViaturaService(emf));
         ctx.setAttribute("agendaService", new AgendaService(emf));
         ctx.setAttribute("reparacaoService", new ReparacaoService(emf));
-        ctx.setAttribute("pecaService", new PecaService(emf));
+        ctx.setAttribute("pecaService",   new PecaService(emf));
         ctx.setAttribute("dashboardService", new DashboardService(emf));
-        ctx.setAttribute("userService", new UserService(emf));
+        ctx.setAttribute("userService",   new UserService(emf));
 
         seedInitialData(emf);
 
+        LogService.info("SISTEMA", "SGO v2.0 iniciado com sucesso", "Sistema");
         log.info("SGO application initialized successfully");
     }
 

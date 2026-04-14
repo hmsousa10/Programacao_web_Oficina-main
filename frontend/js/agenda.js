@@ -17,9 +17,9 @@ let currentAgId      = null;    // currently viewed agendamento id
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!initProtectedPage(['MANAGER', 'ADMIN', 'RECEPTION'])) return;
-  if (!initProtectedPage(['MANAGER', 'RECEPTION'])) return;
   await Promise.allSettled([loadClientes(), loadMecanicos()]);
   await loadAgenda();
+  loadTodayPanel();
 });
 
 /* ── Week Navigation ── */
@@ -175,6 +175,8 @@ async function viewAgendamento(id) {
     const body = document.getElementById('modal-view-agenda-body');
     if (!body) return;
 
+    const podeConverterRep = ag && (ag.estado === 'AGENDADO' || ag.estado === 'CONFIRMADO');
+
     body.innerHTML = `
       <div class="info-grid">
         <div class="info-item">
@@ -187,15 +189,15 @@ async function viewAgendamento(id) {
         </div>
         <div class="info-item">
           <span class="info-label">Cliente</span>
-          <span class="info-value">${escapeHtml(ag?.cliente?.nome || '—')}</span>
+          <span class="info-value">${escapeHtml(ag?.clienteNome || '—')}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Viatura</span>
-          <span class="info-value">${escapeHtml(ag?.viatura?.matricula || '—')} ${escapeHtml(ag?.viatura?.marca || '')} ${escapeHtml(ag?.viatura?.modelo || '')}</span>
+          <span class="info-value">${escapeHtml(ag?.viaturaMatricula || '—')}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Mecânico</span>
-          <span class="info-value">${escapeHtml(ag?.mecanico?.name || 'Não atribuído')}</span>
+          <span class="info-value">${escapeHtml(ag?.mecanicoNome || 'Não atribuído')}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Tipo</span>
@@ -210,7 +212,16 @@ async function viewAgendamento(id) {
             <span class="info-label">Observações</span>
             <span class="info-value">${escapeHtml(ag.observacoes)}</span>
           </div>` : ''}
-      </div>`;
+      </div>
+      ${podeConverterRep ? `
+        <div style="margin-top:1.25rem;padding:1rem;background:rgba(59,130,246,.08);border-radius:var(--radius);border:1px solid rgba(59,130,246,.2);">
+          <p style="margin:0 0 .75rem;font-weight:600;color:var(--primary);">⚡ Converter em Reparação</p>
+          <p style="margin:0 0 .75rem;font-size:.85rem;color:var(--text-secondary);">Cria uma nova reparação com os dados desta marcação e marca-a como recebida.</p>
+          <button class="btn btn-primary btn-sm" onclick="criarReparacaoFromAgendamento(${ag.id})">
+            🔧 Criar Reparação Agora
+          </button>
+        </div>` : ''}
+    `;
     showModal('modal-view-agenda');
   } catch (err) {
     showToast('Erro ao carregar marcação: ' + err.message, 'error');
@@ -373,6 +384,65 @@ async function submitAgendamento(e) {
       showToast('Marcação criada com sucesso!', 'success');
     }
     hideModal('modal-agenda');
+    await loadAgenda();
+  } catch (err) {
+    showToast('Erro: ' + err.message, 'error');
+  }
+}
+
+/* ── Painel de Marcações de Hoje ── */
+async function loadTodayPanel() {
+  const panel = document.getElementById('today-panel');
+  if (!panel) return;
+  const today = new Date();
+  const todayAppts = agendaData.filter(ag => {
+    if (!ag.dataHoraInicio || ag.estado === 'CANCELADO') return false;
+    const dt = new Date(ag.dataHoraInicio);
+    return isSameDay(dt, today);
+  }).sort((a, b) => new Date(a.dataHoraInicio) - new Date(b.dataHoraInicio));
+
+  const countEl = document.getElementById('today-count');
+  if (countEl) countEl.textContent = todayAppts.length + ' marcação' + (todayAppts.length !== 1 ? 'ões' : '');
+
+  if (!todayAppts.length) {
+    panel.innerHTML = '<div class="empty-state" style="padding:1rem"><div class="empty-icon">📅</div><div class="empty-desc">Sem marcações hoje</div></div>';
+    return;
+  }
+  panel.innerHTML = todayAppts.map(ag => `
+    <div class="today-appt-item" onclick="viewAgendamento(${ag.id})">
+      <div class="today-appt-time">${formatTime(ag.dataHoraInicio)}</div>
+      <div class="today-appt-info">
+        <div class="today-appt-cliente">${escapeHtml(ag.clienteNome || ag.cliente?.nome || '—')}</div>
+        <div class="today-appt-viatura">${escapeHtml(ag.viaturaMatricula || ag.viatura?.matricula || '')} · ${escapeHtml(ag.tipoServico || '')}</div>
+      </div>
+      <div>${getStatusBadge(ag.estado)}</div>
+    </div>
+  `).join('');
+}
+
+/* ── Criar Reparação a partir de Agendamento ── */
+async function criarReparacaoFromAgendamento(agId) {
+  const ag = agendaData.find(a => a.id === agId);
+  if (!ag) return;
+  try {
+    const payload = {
+      clienteId:    ag.clienteId   || ag.cliente?.id,
+      viaturaId:    ag.viaturaId   || ag.viatura?.id,
+      mecanicoId:   ag.mecanicoId  || ag.mecanico?.id || null,
+      agendamentoId: agId,
+      descricao:    `Serviço: ${ag.tipoServico || 'Geral'}${ag.observacoes ? ' — ' + ag.observacoes : ''}`,
+    };
+    await api.createReparacao(payload);
+    // Marcar agendamento como CONFIRMADO
+    await api.updateAgendamento(agId, {
+      ...payload,
+      dataHoraInicio: ag.dataHoraInicio,
+      dataHoraFim:    ag.dataHoraFim,
+      tipoServico:    ag.tipoServico,
+      estado:         'CONFIRMADO',
+    });
+    hideModal('modal-view-agenda');
+    showToast('Reparação criada com sucesso! Viatura em receção. 🔧', 'success');
     await loadAgenda();
   } catch (err) {
     showToast('Erro: ' + err.message, 'error');

@@ -6,6 +6,7 @@ import com.oficina.sgo.dto.response.AuthResponse;
 import com.oficina.sgo.exception.BusinessException;
 import com.oficina.sgo.model.User;
 import com.oficina.sgo.security.JwtTokenProvider;
+import com.oficina.sgo.service.LogService;
 import com.oficina.sgo.util.PasswordUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
@@ -65,8 +66,17 @@ public class AuthService {
             }
 
             String token = jwtTokenProvider.generateToken(user.getUsername(), user.getRole().name());
+            LogService.success("AUTH",
+                "Login bem-sucedido: " + user.getUsername() + " (" + user.getRole().name() + ")",
+                user.getUsername());
             return new AuthResponse(token, "Bearer", user.getId(), user.getUsername(), user.getName(), user.getRole().name());
             
+        } catch (BusinessException e) {
+            LogService.warning("AUTH", "Falha de login para: '" + request.username() + "'", "Sistema");
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw e;
         } catch (Exception e) {
             if (em.getTransaction().isActive()) {
                 em.getTransaction().rollback();

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SGO – Login</title>
+  <title>SGO – Sistema de Gestão de Oficina</title>
+  <meta name="description" content="SGO — Software profissional de gestão de oficina. Gerencie clientes, reparações, peças e agenda.">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="login-page">
@@ -20,7 +21,7 @@
 
   <div class="login-card">
     <div class="login-header">
-      <div class="login-logo">🔧</div>
+      <span class="login-logo">🔧</span>
       <h1 class="login-title">SGO</h1>
       <p class="login-subtitle">Sistema de Gestão de Oficina</p>
     </div>
@@ -49,7 +50,7 @@
     </div>
 
     <div class="login-footer">
-      Sistema de Gestão de Oficina &copy; 2026
+      SGO — Sistema de Gestão de Oficina &copy; 2026
     </div>
   </div>
 
@@ -57,7 +58,6 @@
   <script src="js/api.js"   defer></script>
   <script src="js/auth.js"  defer></script>
   <script defer>
-    // If already logged in, redirect to appropriate page
     document.addEventListener('DOMContentLoaded', () => {
       initThemeToggle();
       const token = sessionStorage.getItem('sgo_token');
@@ -81,7 +81,6 @@
         return;
       }
 
-      // Loading state
       btn.disabled = true;
       btnText.textContent = 'A entrar…';
       spinner.classList.remove('hidden');

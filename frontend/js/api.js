@@ -134,4 +134,11 @@ const api = {
   createUser: (data) => apiRequest('/users', 'POST', data),
   updateUser: (id, data) => apiRequest(`/users/${id}`, 'PUT', data),
   deleteUser: (id) => apiRequest(`/users/${id}`, 'DELETE'),
+
+  /* Logs (real DB) */
+  getLogs: (params) => apiRequest(`/logs${params ? '?' + params : ''}`),
+  deleteLogs: () => apiRequest('/logs', 'DELETE'),
+
+  /* Faturação — usa reparacoes com estado CONCLUIDA */
+  getFaturas: (params) => apiRequest(`/reparacoes${params ? '?' + params : ''}`),
 };

@@ -8,6 +8,7 @@
     <persistence-unit name="sgo" transaction-type="RESOURCE_LOCAL">
         <class>com.oficina.sgo.model.Agendamento</class>
         <class>com.oficina.sgo.model.Cliente</class>
+        <class>com.oficina.sgo.model.LogEntry</class>
         <class>com.oficina.sgo.model.MovimentoStock</class>
         <class>com.oficina.sgo.model.OperacaoReparacao</class>
         <class>com.oficina.sgo.model.Peca</class>

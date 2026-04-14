@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGO – Faturação</title>
+  <meta name="description" content="Módulo de faturação da oficina — histórico de serviços concluídos, emissão de faturas e análise financeira.">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Faturação Extra Styles ── */
+    .faturas-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+    }
+    .fat-kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .fat-kpi-card::before {
+      content:'';
+      position:absolute;top:0;left:0;right:0;height:3px;
+      background: var(--kpi-color, var(--primary));
+    }
+    .fat-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+    .fat-kpi-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .8px; color: var(--text-secondary); font-weight: 600; }
+    .fat-kpi-value { font-size: 1.65rem; font-weight: 900; color: var(--text-primary); line-height: 1; }
+    .fat-kpi-icon  { font-size: 1.75rem; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); opacity: .18; }
+
+    .chart-wrapper { height: 250px; padding: 1rem; }
+
+    .faturas-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.25rem;
+    }
+    .faturas-filters input,
+    .faturas-filters select { flex: 1; min-width: 120px; max-width: 180px; }
+    .faturas-filters .f-label { font-size: .8rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+
+    @media print {
+      .sidebar, .page-header, .faturas-filters, .faturas-kpi-grid,
+      .chart-wrapper, .card-header, .modal-header, .modal-footer,
+      .btn, thead, .sidebar-overlay, nav { display: none !important; }
+      .modal-overlay { position: static !important; background: none !important; }
+      .modal { box-shadow: none !important; border: none !important; max-width: 100% !important; }
+      #fatura-print-area { padding: 1rem; }
+      body { background: white !important; color: black !important; }
+    }
+  </style>
+</head>
+<body class="app-layout">
+
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🔧</div>
+        <div class="logo-text">SGO<div class="logo-subtitle">Gestão de Oficina</div></div>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section-label">Principal</li>
+      <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+      <li class="nav-section-label">Gestão</li>
+      <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
+      <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
+      <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
+      <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
+      <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="faturas.html" class="active"><span class="nav-icon">💰</span> Faturação</a></li>
+      <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span class="theme-toggle-icon">☀️</span>
+      <label class="theme-switch" title="Alternar tema claro/escuro">
+        <input type="checkbox" class="theme-checkbox" aria-label="Alternar tema">
+        <span class="theme-slider"></span>
+      </label>
+      <span class="theme-toggle-icon">🌙</span>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="user-name" id="sidebar-name">Utilizador</span>
+          <span class="user-role" id="sidebar-role">—</span>
+        </div>
+      </div>
+      <button class="btn btn-outline-danger btn-sm w-full" onclick="logout()">🚪 Sair</button>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <div class="main-content">
+    <header class="page-header">
+      <div class="page-header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div>
+          <h1 class="page-title">💰 Faturação</h1>
+          <p class="page-subtitle" id="faturas-count">A carregar…</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <div id="live-clock" class="live-clock"></div>
+        <button class="btn btn-secondary btn-sm" onclick="loadFaturas()">🔄 Atualizar</button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- KPIs de Faturação -->
+      <div class="faturas-kpi-grid">
+        <div class="fat-kpi-card" style="--kpi-color:#3b82f6">
+          <div class="fat-kpi-label">Total Faturado</div>
+          <div class="fat-kpi-value" id="kpi-total-fat">—</div>
+          <div class="fat-kpi-icon">💶</div>
+        </div>
+        <div class="fat-kpi-card" style="--kpi-color:#10b981">
+          <div class="fat-kpi-label">Serviços Concluídos</div>
+          <div class="fat-kpi-value" id="kpi-count-fat">—</div>
+          <div class="fat-kpi-icon">✅</div>
+        </div>
+        <div class="fat-kpi-card" style="--kpi-color:#8b5cf6">
+          <div class="fat-kpi-label">Média por Serviço</div>
+          <div class="fat-kpi-value" id="kpi-media-fat">—</div>
+          <div class="fat-kpi-icon">📊</div>
+        </div>
+        <div class="fat-kpi-card" style="--kpi-color:#f59e0b">
+          <div class="fat-kpi-label">Sem Valor Lançado</div>
+          <div class="fat-kpi-value" id="kpi-sem-valor">—</div>
+          <div class="fat-kpi-icon">⚠️</div>
+        </div>
+      </div>
+
+      <!-- Gráfico de Evolução -->
+      <section class="section" style="margin-bottom:1.5rem;">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">📈 Evolução Mensal (últimos 12 meses)</h2>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chart-mensal"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filtros -->
+      <div class="faturas-filters">
+        <span class="f-label">Filtros:</span>
+        <input type="text" id="f-search" placeholder="🔍 Cliente / Matrícula…" oninput="applyFiltros()">
+        <select id="f-mes" onchange="applyFiltros()">
+          <option value="">Todos os meses</option>
+          <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+          <option value="03">Março</option><option value="04">Abril</option>
+          <option value="05">Maio</option><option value="06">Junho</option>
+          <option value="07">Julho</option><option value="08">Agosto</option>
+          <option value="09">Setembro</option><option value="10">Outubro</option>
+          <option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+        <select id="f-ano" onchange="applyFiltros()">
+          <option value="">Todos os anos</option>
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+        </select>
+        <input type="number" id="f-min" placeholder="€ Min" min="0" step="0.01" oninput="applyFiltros()" style="max-width:100px">
+        <input type="number" id="f-max" placeholder="€ Max" min="0" step="0.01" oninput="applyFiltros()" style="max-width:100px">
+        <button class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('.faturas-filters input, .faturas-filters select').forEach(el=>el.value=''); applyFiltros();">Limpar</button>
+      </div>
+
+      <!-- Tabela de Faturas -->
+      <section class="section">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Nº Fatura</th>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Viatura</th>
+                <th>Mecânico</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="faturas-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:2rem"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── Modal: Detalhe de Fatura ── -->
+  <div id="modal-fatura" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">📄 Detalhe da Fatura</h3>
+        <button class="modal-close" onclick="hideModal('modal-fatura')">✕</button>
+      </div>
+      <div class="modal-body" id="modal-fatura-body" style="max-height:70vh;overflow-y:auto">
+        —
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('modal-fatura')">Fechar</button>
+        <button class="btn btn-outline-primary" onclick="window.print()">🖨️ Imprimir / PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/faturas.js"></script>
+</body>
+</html>

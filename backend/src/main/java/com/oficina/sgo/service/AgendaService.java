@@ -94,7 +94,11 @@ public class AgendaService {
                     .observacoes(request.observacoes())
                     .estado(Agendamento.EstadoAgendamento.PENDENTE)
                     .build();
-            return toResponse(agendamentoDao.save(em, agendamento));
+            AgendamentoResponse res = toResponse(agendamentoDao.save(em, agendamento));
+            LogService.success("AGENDA",
+                "Novo agendamento criado: " + cliente.getNome() + 
+                " | " + request.dataHoraInicio(), null);
+            return res;
         });
     }
 
@@ -137,6 +141,8 @@ public class AgendaService {
                     .orElseThrow(() -> new ResourceNotFoundException("Agendamento", id));
             agendamento.setEstado(Agendamento.EstadoAgendamento.CANCELADO);
             agendamentoDao.save(em, agendamento);
+            LogService.warning("AGENDA",
+                "Agendamento #" + id + " cancelado", null);
             return null;
         });
     }

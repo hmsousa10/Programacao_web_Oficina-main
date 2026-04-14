@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
@@ -123,6 +123,11 @@
         </div>
       </div>
       <div class="page-header-actions">
+        <div style="position:relative;">
+          <button class="notif-btn" id="notif-bell" title="Notificações de Stock">🔔
+            <span class="notif-badge hidden" id="notif-badge">0</span>
+          </button>
+        </div>
         <button class="btn btn-primary" onclick="openCreateReparacao()">+ Nova Reparação</button>
       </div>
     </header>
@@ -139,7 +144,7 @@
                 style="padding:.45rem .75rem; min-width:160px">
           <option value="">Todos os estados</option>
           <option value="PENDENTE">Pendente</option>
-          <option value="EM_EXECUCAO">Em Execução</option> 
+          <option value="EM_PROGRESSO">Em Progresso</option>
           <option value="AGUARDA_PECAS">Aguarda Peças</option>
           <option value="CONCLUIDA">Concluída</option>
           <option value="CANCELADA">Cancelada</option>
@@ -219,7 +224,7 @@
               <label for="rep-estado">Estado</label>
               <select id="rep-estado">
                 <option value="PENDENTE">Pendente</option>
-                <option value="EM_EXECUCAO">Em Execução</option> 
+                <option value="EM_PROGRESSO">Em Progresso</option>
                 <option value="AGUARDA_PECAS">Aguarda Peças</option>
                 <option value="CONCLUIDA">Concluída</option>
                 <option value="CANCELADA">Cancelada</option>
@@ -268,7 +273,7 @@
           <label for="novo-estado">Novo Estado *</label>
           <select id="novo-estado">
             <option value="PENDENTE">Pendente</option>
-            <option value="EM_EXECUCAO">Em Execução</option> 
+            <option value="EM_PROGRESSO">Em Progresso</option>
             <option value="AGUARDA_PECAS">Aguarda Peças</option>
             <option value="CONCLUIDA">Concluída</option>
             <option value="CANCELADA">Cancelada</option>
@@ -395,5 +400,11 @@
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/reparacoes.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      startClock && document.getElementById('header-clock') && startClock();
+      setTimeout(initNotifications, 1000);
+    });
+  </script>
 </body>
 </html>

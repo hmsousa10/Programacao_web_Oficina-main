@@ -14,7 +14,6 @@ let showOnlyAlerts = false; // Estado do nosso botão novo!
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!initProtectedPage(['MANAGER', 'ADMIN', 'MECHANIC', 'RECEPTION'])) return;
-  if (!initProtectedPage(['MANAGER', 'ADMIN', 'MECHANIC'])) return;
   loadData();
 });
 

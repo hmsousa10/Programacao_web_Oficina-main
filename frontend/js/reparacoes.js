@@ -11,8 +11,7 @@ let viaturaMap    = {}; // id -> viatura object
 let currentReparacaoView = null; // Guarda a reparação atual para impressão
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!initProtectedPage(['MANAGER', 'ADMIN', 'RECEPTION'])) return;
-  if (!initProtectedPage(['MANAGER', 'RECEPTION', 'MECHANIC'])) return;
+  if (!initProtectedPage(['MANAGER', 'ADMIN', 'RECEPTION', 'MECHANIC'])) return;
   await Promise.allSettled([loadReparacoes(), loadViaturas(), loadMecanicos()]);
   // Set default datetime for new repair
   const now = new Date();
@@ -246,8 +245,9 @@ function printFolhaObra() {
   const qrContainer = document.getElementById('qrcode');
   qrContainer.innerHTML = ''; // Limpar anterior
   
-  // O link mágico que vamos criar no futuro:
-  const trackingUrl = window.location.origin + '/frontend/status.html?id=' + r.id;
+  // URL de rastreamento — aponta para o servidor Tomcat
+  const base = 'http://localhost:8080';
+  const trackingUrl = base + '/sgo/../frontend/status.html?id=' + r.id;
   
   new QRCode(qrContainer, {
     text: trackingUrl,

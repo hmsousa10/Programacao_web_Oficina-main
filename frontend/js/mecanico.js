@@ -159,17 +159,17 @@ function renderDetailPanel() {
   if (!wrapper || !currentRepair) return;
   const r = currentRepair;
 
-  let badgeClass = r.estado === 'EM_EXECUCAO' ? "badge-execucao" : (r.estado === 'CONCLUIDA' ? "badge-concluida" : "badge-pendente");
-  let badgeText = r.estado.replace('_', ' ');
-
   const s = r.estado;
-  const isDiag = (s === 'EM_EXECUCAO' || s === 'AGUARDA_PECAS' || s === 'CONCLUIDA');
-  const isExec = (s === 'EM_EXECUCAO' || s === 'AGUARDA_PECAS' || s === 'CONCLUIDA');
-  const isPronto = (s === 'CONCLUIDA');
+  // Backend usa EM_EXECUCAO — manter consistência
+  const isEmExec = (s === 'EM_EXECUCAO');
+  const isAguarda = (s === 'AGUARDA_PECAS');
+  const isPronto  = (s === 'CONCLUIDA');
+  let badgeClass  = isEmExec ? 'badge-execucao' : (isPronto ? 'badge-concluida' : 'badge-pendente');
+  let badgeText   = s.replace(/_/g,' ');
 
   let progressWidth = '0%';
   if (isPronto) progressWidth = '100%';
-  else if (isExec) progressWidth = '50%';
+  else if (isEmExec || isAguarda) progressWidth = '50%';
 
   wrapper.innerHTML = `
     <div class="intervention-top-bar">
@@ -227,6 +227,8 @@ function renderDetailPanel() {
         <span class="action-card-icon">✅</span><span class="action-card-title">Concluir Trabalho</span>
       </button>
     </div>
+    <!-- Peças Aplicadas -->
+    ${renderPecasAplicadas(r)}
   `;
 }
 
@@ -234,6 +236,43 @@ function formatTimeOnly(dateString) {
   if (!dateString) return '--:--';
   const d = new Date(dateString);
   return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+}
+
+/* ── Card: Peças Aplicadas a esta Reparação ── */
+function renderPecasAplicadas(r) {
+  const movimentos = r.pecasUsadas || r.movimentosStock || [];
+  const valorOps = (r.operacoes || []).reduce((sum, o) => sum + (o.tempoRealMinutos || 0) * 1.5, 0); // €1.5/min mão obra
+  const valorPecas = movimentos.reduce((sum, m) => sum + ((m.precoUnitario || m.precoPeca || 0) * (m.quantidade || 1)), 0);
+  const valorTotal = r.valorTotal ? parseFloat(r.valorTotal) : (valorOps + valorPecas);
+
+  if (!movimentos.length) {
+    return `<div class="card" style="margin-top:1.5rem;">
+      <div class="card-header"><h3 class="card-title">🔧 Materiais Utilizados</h3></div>
+      <div class="card-body"><p class="text-muted" style="text-align:center;">Nenhuma peça retirada do armazém ainda.</p></div>
+    </div>`;
+  }
+  return `<div class="card" style="margin-top:1.5rem;">
+    <div class="card-header">
+      <h3 class="card-title">🔧 Materiais Utilizados</h3>
+      <span class="badge badge-primary">${movimentos.length} peça(s)</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
+        <thead><tr style="background:var(--bg);"><th style="padding:.5rem 1rem;text-align:left;">Peça</th><th style="padding:.5rem;text-align:center;">Qtd</th><th style="padding:.5rem 1rem;text-align:right;">Preço Unit.</th></tr></thead>
+        <tbody>${movimentos.map(m => `
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:.6rem 1rem;">${escapeHtml(m.designacao || m.pecaDesignacao || '—')}</td>
+            <td style="padding:.6rem;text-align:center;"><strong>${Math.abs(m.quantidade)}</strong></td>
+            <td style="padding:.6rem 1rem;text-align:right;">${formatCurrency(m.precoUnitario || m.precoPeca || 0)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="padding:1rem;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:600;">Valor Total Estimado:</span>
+        <span style="font-size:1.25rem;font-weight:800;color:var(--primary);">${formatCurrency(valorTotal)}</span>
+      </div>
+    </div>
+  </div>`;
 }
 
 function getTimerKey() { return 'sgo_timer_' + (currentRepair?.id || 'unknown'); }

@@ -5,12 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SGO – Agenda</title>
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* Painel de Hoje */
+    .today-panel-card { margin-bottom:1.5rem; }
+    .today-appt-item { display:flex; align-items:center; gap:1rem; padding:.85rem 1rem;
+      border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
+    .today-appt-item:last-child { border-bottom:none; }
+    .today-appt-item:hover { background:var(--hover-bg); }
+    .today-appt-time { font-size:1.1rem; font-weight:800; color:var(--primary); width:52px; text-align:center; flex-shrink:0; }
+    .today-appt-info { flex:1; min-width:0; }
+    .today-appt-cliente { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .today-appt-viatura { font-size:.8rem; color:var(--text-secondary); }
+  </style>
 </head>
 <body class="app-layout">
 
   <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-  <!-- ── Sidebar ── -->
   <nav class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">
@@ -21,13 +32,14 @@
     <ul class="sidebar-nav">
       <li class="nav-section-label">Principal</li>
       <li><a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a></li>
-      <li><a href="agenda.html"><span class="nav-icon">📅</span> Agenda</a></li>
+      <li><a href="agenda.html" class="active"><span class="nav-icon">📅</span> Agenda</a></li>
       <li class="nav-section-label">Gestão</li>
       <li><a href="clientes.html"><span class="nav-icon">👤</span> Clientes</a></li>
       <li><a href="viaturas.html"><span class="nav-icon">🚗</span> Viaturas</a></li>
       <li><a href="reparacoes.html"><span class="nav-icon">🔩</span> Reparações</a></li>
       <li><a href="pecas.html"><span class="nav-icon">📦</span> Peças &amp; Stock</a></li>
       <li><a href="mecanico.html"><span class="nav-icon">👨‍🔧</span> Painel Mecânico</a></li>
+      <li><a href="faturas.html"><span class="nav-icon">💰</span> Faturação</a></li>
       <li><a href="logs.html"><span class="nav-icon">📋</span> Logs</a></li>
     </ul>
     <div class="theme-toggle">
@@ -50,14 +62,13 @@
     </div>
   </nav>
 
-  <!-- ── Main ── -->
   <div class="main-content">
     <header class="page-header">
       <div class="page-header-left">
         <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
         <div>
           <h1 class="page-title">📅 Agenda Semanal</h1>
-          <p class="page-subtitle">Gestão de marcações</p>
+          <p class="page-subtitle" id="today-count">Gestão de marcações</p>
         </div>
       </div>
       <div class="page-header-actions">
@@ -66,6 +77,19 @@
     </header>
 
     <main class="page-body">
+
+      <!-- Painel de Hoje -->
+      <section class="section today-panel-card">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">📌 Marcações de Hoje</h2>
+            <span class="badge badge-primary" id="today-count-badge">—</span>
+          </div>
+          <div id="today-panel">
+            <div class="loading-overlay"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </section>
 
       <!-- Week Navigation -->
       <div class="agenda-header">
@@ -199,5 +223,10 @@
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/agenda.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initNotifications, 1500);
+    });
+  </script>
 </body>
 </html>

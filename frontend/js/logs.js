@@ -1,77 +1,68 @@
 /* ========================================================
-   SGO - logs.js  |  Activity Logs Viewer
+   SGO - logs.js  |  Activity Logs — Real DB via API
    ======================================================== */
 
 'use strict';
-
-const LOG_STORAGE_KEY = 'sgo_logs';
-const MAX_LOGS = 500;
 
 let allLogs      = [];
 let filteredLogs = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!initProtectedPage(['MANAGER', 'RECEPTION', 'MECHANIC'])) return;
-  seedDemoLogs();
   loadLogs();
 });
 
-/* ── Load logs from localStorage ── */
-function loadLogs() {
-  const stored = localStorage.getItem(LOG_STORAGE_KEY);
-  allLogs = stored ? JSON.parse(stored) : [];
-  allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  filterLogs();
-}
+/* ── Load logs from REST API (real DB) ── */
+async function loadLogs() {
+  const tbody = document.getElementById('logs-tbody');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem"><div class="spinner"></div></td></tr>`;
+  
+  try {
+    const severity  = document.getElementById('log-filter-severity')?.value || '';
+    const source    = document.getElementById('log-filter-source')?.value   || '';
+    const search    = document.getElementById('log-search')?.value          || '';
+    const dateFrom  = document.getElementById('log-date-from')?.value       || '';
+    const dateTo    = document.getElementById('log-date-to')?.value         || '';
 
-/* ── Save logs to localStorage ── */
-function saveLogs() {
-  if (allLogs.length > MAX_LOGS) {
-    allLogs = allLogs.slice(0, MAX_LOGS);
-  }
-  localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(allLogs));
-}
+    const params = new URLSearchParams();
+    if (severity) params.set('severity', severity);
+    if (source)   params.set('source',   source);
+    if (search)   params.set('username', search);
+    if (dateFrom) params.set('from', dateFrom + 'T00:00:00');
+    if (dateTo)   params.set('to',   dateTo   + 'T23:59:59');
+    params.set('limit', '300');
 
-/* ── Add a log entry (can be called from other modules) ── */
-function addLog(severity, source, message, user) {
-  const entry = {
-    id: Date.now() + Math.random().toString(36).substring(2, 7),
-    timestamp: new Date().toISOString(),
-    severity: severity.toUpperCase(),
-    source: source.toUpperCase(),
-    message: message,
-    user: user || getCurrentUserName()
-  };
-  allLogs.unshift(entry);
-  saveLogs();
-  return entry;
-}
-
-/* ── Get current user name helper ── */
-function getCurrentUserName() {
-  const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-  return user ? (user.name || user.username || 'Sistema') : 'Sistema';
-}
-
-/* ── Filter logs ── */
-function filterLogs() {
-  const search   = (document.getElementById('log-search')?.value || '').toLowerCase();
-  const severity = document.getElementById('log-filter-severity')?.value || '';
-  const source   = document.getElementById('log-filter-source')?.value || '';
-
-  filteredLogs = allLogs.filter(log => {
-    if (severity && log.severity !== severity) return false;
-    if (source && log.source !== source) return false;
+    const data = await api.getLogs(params.toString());
+    allLogs      = data.logs      || [];
+    filteredLogs = allLogs;
+    
+    // Aplicar filtro de pesquisa no texto (client-side)
     if (search) {
-      const haystack = `${log.message} ${log.user} ${log.source}`.toLowerCase();
-      if (!haystack.includes(search)) return false;
+      filteredLogs = allLogs.filter(l =>
+        (l.message  || '').toLowerCase().includes(search.toLowerCase()) ||
+        (l.username || '').toLowerCase().includes(search.toLowerCase()) ||
+        (l.source   || '').toLowerCase().includes(search.toLowerCase())
+      );
     }
-    return true;
-  });
 
-  renderLogs(filteredLogs);
-  renderSummary();
-  updateCount();
+    renderLogs(filteredLogs);
+    renderSummary(data);
+    updateCount(filteredLogs.length, allLogs.length);
+  } catch (err) {
+    if (tbody) tbody.innerHTML = `
+      <tr><td colspan="5">
+        <div class="alert alert-danger" style="margin:1.5rem">
+          ❌ Erro ao carregar logs: ${escapeHtml(err.message)}
+          <br><small>Verifique se o servidor está a correr.</small>
+        </div>
+      </td></tr>`;
+  }
+}
+
+/* ── Filter (client-side search supplement) ── */
+function filterLogs() {
+  // Re-load from API with new filters
+  loadLogs();
 }
 
 /* ── Render logs table ── */
@@ -86,7 +77,7 @@ function renderLogs(logs) {
           <div class="empty-state">
             <div class="empty-icon">📋</div>
             <div class="empty-title">Sem registos</div>
-            <div class="empty-desc">Não foram encontrados logs com os filtros selecionados.</div>
+            <div class="empty-desc">Não foram encontrados logs com os critérios selecionados.</div>
           </div>
         </td>
       </tr>`;
@@ -98,51 +89,41 @@ function renderLogs(logs) {
       <td><span class="log-timestamp">${formatLogTimestamp(log.timestamp)}</span></td>
       <td>${getSeverityBadge(log.severity)}</td>
       <td><span class="log-source">${escapeHtml(log.source)}</span></td>
-      <td><span class="log-user">${escapeHtml(log.user)}</span></td>
-      <td><span class="log-message">${escapeHtml(log.message)}</span></td>
+      <td><span class="log-user">${escapeHtml(log.username || '—')}</span></td>
+      <td>
+        <span class="log-message">${escapeHtml(log.message)}</span>
+        ${log.entityType ? `<small style="color:var(--text-secondary);display:block;margin-top:.25rem;">${escapeHtml(log.entityType)} #${log.entityId || ''}</small>` : ''}
+      </td>
     </tr>
   `).join('');
 }
 
 /* ── Render summary stats ── */
-function renderSummary() {
+function renderSummary(data) {
   const container = document.getElementById('logs-summary');
   if (!container) return;
 
-  const counts = { INFO: 0, SUCCESS: 0, WARNING: 0, ERROR: 0, DEBUG: 0 };
-  allLogs.forEach(log => {
-    if (counts[log.severity] !== undefined) counts[log.severity]++;
-  });
+  const stats = [
+    { label: 'INFO',    icon: 'ℹ️', cls: 'log-severity-info',    count: data.info    || 0 },
+    { label: 'SUCESSO', icon: '✅', cls: 'log-severity-success', count: data.success || 0 },
+    { label: 'AVISO',   icon: '⚠️', cls: 'log-severity-warning', count: data.warning || 0 },
+    { label: 'ERRO',    icon: '❌', cls: 'log-severity-error',   count: data.error   || 0 },
+    { label: 'TOTAL',   icon: '📊', cls: 'log-severity-debug',   count: data.total   || 0 },
+  ];
 
-  container.innerHTML = `
+  container.innerHTML = stats.map(s => `
     <div class="log-stat">
-      <span class="log-severity log-severity-info">ℹ️ INFO</span>
-      <span class="log-stat-count">${counts.INFO}</span>
+      <span class="log-severity ${s.cls}">${s.icon} ${s.label}</span>
+      <span class="log-stat-count">${s.count}</span>
     </div>
-    <div class="log-stat">
-      <span class="log-severity log-severity-success">✅ SUCESSO</span>
-      <span class="log-stat-count">${counts.SUCCESS}</span>
-    </div>
-    <div class="log-stat">
-      <span class="log-severity log-severity-warning">⚠️ AVISO</span>
-      <span class="log-stat-count">${counts.WARNING}</span>
-    </div>
-    <div class="log-stat">
-      <span class="log-severity log-severity-error">❌ ERRO</span>
-      <span class="log-stat-count">${counts.ERROR}</span>
-    </div>
-    <div class="log-stat">
-      <span class="log-severity log-severity-debug">🔍 DEBUG</span>
-      <span class="log-stat-count">${counts.DEBUG}</span>
-    </div>
-  `;
+  `).join('');
 }
 
 /* ── Update count label ── */
-function updateCount() {
+function updateCount(shown, total) {
   const el = document.getElementById('log-count');
   if (el) {
-    el.textContent = `${filteredLogs.length} de ${allLogs.length} registo${allLogs.length !== 1 ? 's' : ''}`;
+    el.textContent = `${shown} de ${total} registo${total !== 1 ? 's' : ''}`;
   }
 }
 
@@ -167,53 +148,15 @@ function formatLogTimestamp(isoStr) {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-/* ── Clear all logs ── */
+/* ── Clear all logs from DB (só MANAGER) ── */
 async function clearLogs() {
-  const ok = await confirmDialog('Tem a certeza que deseja limpar todos os logs?');
+  const ok = await confirmDialog('Tem a certeza que deseja limpar TODOS os logs da base de dados?', 'Limpar Logs', '⚠️');
   if (!ok) return;
-  allLogs = [];
-  saveLogs();
-  filterLogs();
-  showToast('Logs limpos com sucesso.', 'success');
-}
-
-/* ── Seed demo logs (only if empty) ── */
-function seedDemoLogs() {
-  const stored = localStorage.getItem(LOG_STORAGE_KEY);
-  if (stored && JSON.parse(stored).length > 0) return;
-
-  const now = new Date();
-  const demoLogs = [
-    { severity: 'INFO',    source: 'SISTEMA',    message: 'Sistema SGO iniciado com sucesso.',                          user: 'Sistema',        offset: -1 },
-    { severity: 'SUCCESS', source: 'AUTH',        message: 'Login efetuado com sucesso.',                                user: 'admin',          offset: -2 },
-    { severity: 'INFO',    source: 'CLIENTES',    message: 'Novo cliente criado: João Silva (NIF: 123456789).',          user: 'admin',          offset: -5 },
-    { severity: 'INFO',    source: 'VIATURAS',    message: 'Viatura registada: 00-AA-00 (BMW Série 3).',                 user: 'admin',          offset: -8 },
-    { severity: 'SUCCESS', source: 'REPARACOES',  message: 'Reparação #1024 concluída com sucesso.',                     user: 'mec.carlos',     offset: -12 },
-    { severity: 'WARNING', source: 'PECAS',       message: 'Stock baixo: Filtro de óleo (3 unidades restantes).',        user: 'Sistema',        offset: -15 },
-    { severity: 'ERROR',   source: 'SISTEMA',     message: 'Falha na ligação à API externa de peças.',                   user: 'Sistema',        offset: -20 },
-    { severity: 'INFO',    source: 'AGENDA',      message: 'Agendamento criado para 15/03/2026 às 10:00.',               user: 'rec.maria',      offset: -25 },
-    { severity: 'SUCCESS', source: 'REPARACOES',  message: 'Operação "Troca de pastilhas" concluída em 45 minutos.',     user: 'mec.carlos',     offset: -30 },
-    { severity: 'WARNING', source: 'AGENDA',      message: 'Capacidade máxima atingida para 16/03/2026 às 14:00.',       user: 'Sistema',        offset: -35 },
-    { severity: 'DEBUG',   source: 'SISTEMA',     message: 'Cache de dados atualizado (tempo: 120ms).',                  user: 'Sistema',        offset: -40 },
-    { severity: 'INFO',    source: 'CLIENTES',    message: 'Dados do cliente atualizado: Maria Santos.',                 user: 'rec.maria',      offset: -45 },
-    { severity: 'ERROR',   source: 'AUTH',        message: 'Tentativa de login falhada para utilizador "teste".',        user: 'Sistema',        offset: -50 },
-    { severity: 'SUCCESS', source: 'PECAS',       message: 'Entrada de stock: 20x Filtro de ar adicionados.',            user: 'admin',          offset: -55 },
-    { severity: 'INFO',    source: 'VIATURAS',    message: 'Viatura 11-BB-22 associada ao cliente António Ferreira.',    user: 'rec.maria',      offset: -60 },
-    { severity: 'WARNING', source: 'REPARACOES',  message: 'Reparação #1028 aguarda peças há mais de 48 horas.',        user: 'Sistema',        offset: -70 },
-    { severity: 'DEBUG',   source: 'SISTEMA',     message: 'Limpeza automática de sessões expiradas concluída.',         user: 'Sistema',        offset: -80 },
-    { severity: 'SUCCESS', source: 'AUTH',        message: 'Palavra-passe alterada com sucesso.',                        user: 'mec.carlos',     offset: -90 },
-    { severity: 'INFO',    source: 'REPARACOES',  message: 'Nova reparação #1030 criada para viatura 33-CC-44.',         user: 'rec.maria',      offset: -100 },
-    { severity: 'ERROR',   source: 'PECAS',       message: 'Erro ao processar requisição de peças: stock insuficiente.', user: 'mec.carlos',     offset: -110 },
-  ];
-
-  allLogs = demoLogs.map(log => ({
-    id: Date.now() + Math.random().toString(36).substring(2, 7),
-    timestamp: new Date(now.getTime() + log.offset * 60000).toISOString(),
-    severity: log.severity,
-    source: log.source,
-    message: log.message,
-    user: log.user,
-  }));
-
-  saveLogs();
+  try {
+    await api.deleteLogs();
+    showToast('Logs limpos com sucesso.', 'success');
+    loadLogs();
+  } catch (err) {
+    showToast('Erro ao limpar logs: ' + err.message, 'error');
+  }
 }
