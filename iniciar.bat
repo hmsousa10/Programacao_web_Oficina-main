@@ -9,7 +9,7 @@ echo  ============================================
 echo.
 
 set JAVA_HOME=C:\Program Files\Java\jdk-21
-set CATALINA_HOME=C:\apache-tomcat-10.1.54
+set CATALINA_HOME=C:\dev\tomcat
 set TOMCAT_WEBAPPS=%CATALINA_HOME%\webapps
 
 :: Verificar se o Tomcat existe

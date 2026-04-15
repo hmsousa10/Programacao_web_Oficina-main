@@ -50,6 +50,7 @@ function checkAuth() {
 function checkRole(requiredRoles) {
   const user = getCurrentUser();
   if (!user) { window.location.href = 'index.html'; return false; }
+  if (user.role === 'ADMIN') return true;
   if (!requiredRoles.includes(user.role)) {
     redirectByRole(user);
     return false;

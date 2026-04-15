@@ -244,7 +244,7 @@ function getCombustivelLabel(c) {
 
 /* ── Role label ── */
 function getRoleLabel(role) {
-  const map = { MANAGER: 'Gestor', RECEPTION: 'Receção', MECHANIC: 'Mecânico' };
+  const map = { MANAGER: 'Gestor', ADMIN: 'Administrador', RECEPTION: 'Receção', MECHANIC: 'Mecânico' };
   return map[role] || role || '—';
 }
 

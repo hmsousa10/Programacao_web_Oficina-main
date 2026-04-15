@@ -85,6 +85,7 @@ public abstract class BaseApiServlet extends HttpServlet {
     protected boolean hasRole(HttpServletRequest req, String... roles) {
         String role = getRole(req);
         if (role == null) return false;
+        if ("ADMIN".equals(role)) return true;
         return Arrays.asList(roles).contains(role);
     }
 
