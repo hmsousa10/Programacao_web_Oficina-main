@@ -1,105 +1,95 @@
-# Programação Web - Oficina
+# 🔧 SGO | Workshop Management System
 
-Projeto desenvolvido na disciplina de **Programação Web**, utilizando **Java**, **JavaScript**, **HTML** e **CSS**.
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-323330?style=for-the-badge&logo=javascript&logoColor=F7DF1E)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
 
-## 🔧 Tecnologias utilizadas
+> **O Sistema de Gestão de Oficina (SGO) é um projeto Full-Stack académico para a disciplina de Programação Web. O seu objetivo principal é simular os requisitos técnicos e operacionais de um ambiente real de gestão oficinal, pautando-se por uma arquitetura segura e fortemente baseada em controlo de acessos por tipo de utilizador.**
 
-- **Java** – lógica de negócio / backend  
-- **JavaScript** – interação no lado do cliente  
-- **HTML** – estrutura das páginas  
-- **CSS** – estilos e layout  
+## 📖 Índice
 
-## 🚀 Requisitos para executar
+- [Visão Geral](#-visão-geral)
+- [Funcionalidades Core](#-funcionalidades-core)
+- [Arquitetura do Sistema](#-arquitetura-do-sistema)
+- [Instalação e Execução Local](#-instalação-e-execução-local)
+- [Estrutura Tecnológica](#-estrutura-tecnológica)
 
-Antes de começar, o utilizador precisa de ter instalado:
+---
 
-- [Git](https://git-scm.com/)
-- [Visual Studio Code](https://code.visualstudio.com/) (ou outro editor/IDE)
-- **JDK** (Java Development Kit) – recomendado: JDK 17 ou superior
-- Extensão Java no VS Code (opcional mas recomendado)
-- Extensão **Live Server** (opcional, para testar o front‑end)
+## 🚀 Visão Geral
 
-## 📥 Como clonar o repositório
+Desenvolvido para centralizar e digitalizar todo o fluxo de trabalho de uma oficina automóvel profissional. Desde a entrada do cliente e viatura na receção, passando pela área de reparações executada pelo corpo de mecânicos e terminando na faturação e análise de dashboard gerencial.
 
+---
+
+## ⚙️ Funcionalidades Core
+
+O sistema está segmentado em módulos inteligentes protegidos por controlo de segurança baseado no papel (*Role-Based Access Control*):
+
+* **👩‍💼 Receção e Gestão (Administração):** 
+  * *Onboarding* de novos clientes e arquivo de viaturas.
+  * Agendamento de intervenções automóveis.
+  * Central de faturação automatizada.
+  * *Audit Logs*: Histórico imutável de registos para manutenção da segurança do sistema.
+* **👨‍🔧 Mão de Obra (Mecânica):**
+  * Dashboard de controlo exclusivo do mecânico com tarefas pendentes.
+  * Atualização do estado da viatura e reparações ativas.
+  * Consulta e requisição no catálogo dinâmico de peças.
+
+---
+
+## 🏗️ Arquitetura do Sistema
+
+A aplicação foi isolada de forma a evidenciar duas grandes camadas de engenharia de software separadas, garantindo um código limpo e escalável:
+
+* **Backend Engine:** Desenvolvido integralmente em **Java** vanilla, focado numa alta fiabilidade de execução. Este motor é responsável pela abstração da base de dados, segurança de tokens, restrições e gestão da complexa lógica negocial da oficina.
+* **Frontend Web App:** Construída com uma base limpa de **JavaScript (ES6), HTML5 e CSS3**. Segue uma identidade visual de alto desempenho baseada em "Dark Mode/Industrial", utilizando sessões do *browser*, assincronismo (AJAX/Fetch) e *DOM manipulation* sem poluição de grandes frameworks extra.
+
+---
+
+## 🛠️ Instalação e Execução Local
+
+### 1. Clonar o Repositório
 ```bash
-git clone https://github.com/hmsousa10/Programacao_web_Oficina-main.git
-cd Programacao_web_Oficina-main
+git clone https://github.com/SEU_USER/sgo-workshop-manager.git
+cd sgo-workshop-manager
 ```
 
-Ou, no VS Code:
+### 2. Dependências e Pré-Requisitos
+- **Java Development Kit (JDK 17+)**
+- Instalação e configuração de ambiente local de Base de Dados (se aplicável na infraestrutura).
 
-1. `Ctrl + Shift + P` → `Git: Clone`
-2. Colar o URL do repositório
-3. Escolher a pasta de destino
-4. Abrir a pasta no VS Code
-
-## ▶️ Como executar o projeto
-
-### 1. Atualizar o código
-
-Antes de começar a trabalhar:
-
+### 3. Execução Integrada (Backend)
+Na raiz da pasta, incluímos scripts nativos para inicializar rapidamente o motor Java:
 ```bash
-git pull origin main
+iniciar.bat
+```
+*(Em alternativa, compile a classe Main através da sua IDE — VS Code/IntelliJ).*
+
+### 4. Execução da Interface (Frontend)
+Na vertente Web, servimos os ficheiros estáticos diretamente:
+- Sugestão: Utilize a extensão **Live Server** (VS Code) apontando para a pasta `/frontend`.
+- Ponto de entrada a abrir no navegador:
+```bash
+http://localhost:5500/frontend/index.html
 ```
 
-ou usar o botão **Pull** no VS Code.
+---
 
-### 2. Correr a parte Java
-
-1. Abrir o projeto no VS Code (ou outra IDE).
-2. Certificar que o JDK está configurado.
-3. Procurar a classe com o método `main` (por exemplo `Main.java`).
-4. Clicar em **Run** / **Executar** ou usar o comando da IDE para correr a aplicação.
-
-> Caso o projeto use Maven/Gradle, ajustar aqui para:
-> - `mvn spring-boot:run` / `mvn exec:java`
-> - ou `gradle bootRun` / `gradle run`
-
-### 3. Correr a parte Web (HTML/CSS/JS)
-
-Opção simples:
-
-- Abrir o ficheiro principal (ex.: `index.html`) no navegador.
-
-Opção com Live Server (VS Code):
-
-1. Instalar a extensão **Live Server**.
-2. Clicar com o botão direito em `index.html` → **Open with Live Server**.
-3. O site abre no browser em `http://localhost:5500` (ou porta semelhante).
-
-## 👥 Colaboração (colegas)
-
-Para os colegas trabalharem neste repositório:
-
-1. O dono do repositório adiciona os colegas como **Collaborators** no GitHub.
-2. Os colegas aceitam o convite.
-3. Cada colega:
-   - Faz **clone** do repositório.
-   - Antes de trabalhar, faz `git pull`.
-   - Depois de fazer alterações:
-
-   ```bash
-   git add .
-   git commit -m "mensagem do commit"
-   git push origin main
-   ```
-
-   ou usa a aba **Source Control** do VS Code (stage → commit → push).
-
-## 📁 Estrutura (exemplo)
-
-> Ajustar à estrutura real do projeto.
+## 🗂️ Estrutura Tecnológica
 
 ```text
-Programacao_web_Oficina-main/
-├─ src/                # Código Java
-├─ web/                # Ficheiros HTML, CSS, JS
-├─ README.md           # Este ficheiro
-└─ ...
+📦 sgo-workshop-manager
+ ┣ 📂 backend/        # Código-fonte Java (Classes DAO, Models, Handlers)
+ ┣ 📂 database/       # Schemas relacionais (SQL)
+ ┣ 📂 frontend/       # Interface de Utilizador (Client-Side)
+ ┃ ┣ 📂 css/          # Estilização global e de componentes
+ ┃ ┣ 📂 js/           # Scripts lógicos de controlo visual e auth
+ ┃ ┗ 📜 index.html    # Porta principal da aplicação (Página de Login)
+ ┣ 📜 iniciar.bat     # Script utilitário em Windows para lançar serviços
+ ┗ 📜 README.md       # Documentação core
 ```
 
-## 📄 Licença
-
-Projeto para fins académicos/oficina.  
-Usar e modificar livremente para estudo.
+---
+*Arquitetado e desenvolvido com código estruturado para a disciplina de Programação Web.*
