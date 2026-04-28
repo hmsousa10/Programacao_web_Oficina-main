@@ -28,3 +28,4 @@ logs/
 # Environment
 .env
 *.env.local
+config/db.env

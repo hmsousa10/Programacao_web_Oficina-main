@@ -12,6 +12,14 @@ set JAVA_HOME=C:\Program Files\Java\jdk-21
 set CATALINA_HOME=C:\dev\tomcat
 set TOMCAT_WEBAPPS=%CATALINA_HOME%\webapps
 
+:: Carregar configuracao local de BD (opcional)
+set DB_ENV_FILE=%~dp0config\db.env
+if exist "%DB_ENV_FILE%" (
+    for /f "usebackq tokens=1,* delims== eol=#" %%A in ("%DB_ENV_FILE%") do (
+        if not "%%A"=="" set "%%A=%%B"
+    )
+)
+
 :: Verificar se o Tomcat existe
 if not exist "%CATALINA_HOME%\bin\startup.bat" (
     echo [ERRO] Tomcat nao encontrado em %CATALINA_HOME%
