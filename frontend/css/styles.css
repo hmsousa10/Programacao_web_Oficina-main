@@ -510,6 +510,23 @@ img { max-width: 100%; }
 
 .card-body { padding: 1.5rem; }
 
+/* ── Charts ── */
+.chart-body {
+  position: relative;
+  height: 300px;
+}
+
+.chart-body--center {
+  display: flex;
+  justify-content: center;
+}
+
+.chart-body canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .card-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border);
@@ -520,7 +537,7 @@ img { max-width: 100%; }
 /* ── KPI Grid ── */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.25rem;
   margin-bottom: 2rem;
 }
@@ -1572,7 +1589,8 @@ hr {
 @media (max-width: 1024px) {
   .mecanico-layout { grid-template-columns: 280px 1fr; }
   .mecanico-dashboard-grid { grid-template-columns: 1fr; }
-  .kpi-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .chart-body { height: 260px; }
 }
 
 @media (max-width: 768px) {
@@ -1589,6 +1607,7 @@ hr {
   .mecanico-layout { grid-template-columns: 1fr; height: auto; }
   .two-col-layout { grid-template-columns: 1fr; }
   .kpi-grid, .dashboard-kpi-row { grid-template-columns: 1fr 1fr; }
+  .chart-body { height: 220px; }
 
   .calendar-header-row,
   .calendar-row { grid-template-columns: 50px repeat(6, 1fr); }
