@@ -483,14 +483,18 @@ async function loadAlertasStock() {
     card.style.border = "2px solid #ef4444";
     card.style.boxShadow = "0 0 15px rgba(239, 68, 68, 0.2)";
 
-    tbody.innerHTML = data.map(p => `
-      <tr>
-        <td><code>${escapeHtml(p.referencia)}</code></td>
-        <td><strong>${escapeHtml(p.designacao)}</strong></td>
-        <td class="stock-low" style="font-size: 1.1rem;">${p.quantidadeStock || p.stockAtual}</td>
-        <td>${p.stockMinimo}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = data.map(p => {
+      const stockAtual = p.quantidadeStock ?? p.stockAtual ?? 0;
+      const stockMinimo = p.stockMinimo ?? 0;
+      return `
+        <tr>
+          <td><code>${escapeHtml(p.referencia)}</code></td>
+          <td><strong>${escapeHtml(p.designacao)}</strong></td>
+          <td class="stock-low" style="font-size: 1.1rem;">${stockAtual}</td>
+          <td>${stockMinimo}</td>
+        </tr>
+      `;
+    }).join('');
   } catch (err) { 
       tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">Erro ao carregar alertas</td></tr>`; 
   }
