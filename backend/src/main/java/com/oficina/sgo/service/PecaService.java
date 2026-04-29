@@ -58,9 +58,25 @@ public class PecaService {
 
     public PecaResponse create(CreatePecaRequest request) {
         return inTransaction(em -> {
+            String referencia = request.referencia() != null ? request.referencia().trim() : null;
+            String designacao = request.designacao() != null ? request.designacao().trim() : null;
+
+            if (referencia == null || referencia.isBlank()) {
+                throw new BusinessException("Referencia obrigatoria");
+            }
+            if (designacao == null || designacao.isBlank()) {
+                throw new BusinessException("Designacao obrigatoria");
+            }
+            if (request.precoUnitario() == null || request.precoUnitario().signum() <= 0) {
+                throw new BusinessException("Preco unitario invalido");
+            }
+            if (pecaDao.existsByReferencia(em, referencia)) {
+                throw new BusinessException("Ja existe uma peca com esta referencia");
+            }
+
             Peca peca = Peca.builder()
-                    .referencia(request.referencia())
-                    .designacao(request.designacao())
+                    .referencia(referencia)
+                    .designacao(designacao)
                     .quantidadeStock(request.quantidadeStock() != null ? request.quantidadeStock() : 0)
                     .stockMinimo(request.stockMinimo() != null ? request.stockMinimo() : 5)
                     .precoUnitario(request.precoUnitario())
@@ -76,10 +92,30 @@ public class PecaService {
             Peca peca = pecaDao.findById(em, id)
                     .orElseThrow(() -> new ResourceNotFoundException("Peca", id));
             
-            if (request.referencia() != null) peca.setReferencia(request.referencia());
-            if (request.designacao() != null) peca.setDesignacao(request.designacao());
+            if (request.referencia() != null) {
+                String referencia = request.referencia().trim();
+                if (referencia.isBlank()) {
+                    throw new BusinessException("Referencia obrigatoria");
+                }
+                if (!referencia.equals(peca.getReferencia()) && pecaDao.existsByReferencia(em, referencia)) {
+                    throw new BusinessException("Ja existe uma peca com esta referencia");
+                }
+                peca.setReferencia(referencia);
+            }
+            if (request.designacao() != null) {
+                String designacao = request.designacao().trim();
+                if (designacao.isBlank()) {
+                    throw new BusinessException("Designacao obrigatoria");
+                }
+                peca.setDesignacao(designacao);
+            }
             if (request.stockMinimo() != null) peca.setStockMinimo(request.stockMinimo());
-            if (request.precoUnitario() != null) peca.setPrecoUnitario(request.precoUnitario());
+            if (request.precoUnitario() != null) {
+                if (request.precoUnitario().signum() <= 0) {
+                    throw new BusinessException("Preco unitario invalido");
+                }
+                peca.setPrecoUnitario(request.precoUnitario());
+            }
             if (request.categoria() != null) peca.setCategoria(request.categoria()); // NOVO
             if (request.fornecedor() != null) peca.setFornecedor(request.fornecedor()); // NOVO
             

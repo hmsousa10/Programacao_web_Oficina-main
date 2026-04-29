@@ -3,14 +3,18 @@ package com.oficina.sgo.servlet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.oficina.sgo.exception.BusinessException;
 import com.oficina.sgo.exception.CapacidadeAgendaException;
 import com.oficina.sgo.exception.CapacidadeOficinaException;
 import com.oficina.sgo.exception.ResourceNotFoundException;
 import com.oficina.sgo.model.User;
+import jakarta.persistence.PersistenceException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.hibernate.exception.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,6 +110,24 @@ public abstract class BaseApiServlet extends HttpServlet {
             sendError(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
         } else if (e instanceof CapacidadeAgendaException || e instanceof CapacidadeOficinaException) {
             sendError(resp, HttpServletResponse.SC_CONFLICT, e.getMessage());
+        } else if (e instanceof MismatchedInputException || e instanceof InvalidFormatException) {
+            sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Pedido invalido");
+        } else if (e instanceof PersistenceException) {
+            Throwable root = e;
+            while (root.getCause() != null && root.getCause() != root) {
+                root = root.getCause();
+            }
+            if (root instanceof ConstraintViolationException) {
+                ConstraintViolationException cve = (ConstraintViolationException) root;
+                String constraint = cve.getConstraintName();
+                if (constraint != null && constraint.toLowerCase().contains("referencia")) {
+                    sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Ja existe uma peca com esta referencia");
+                } else {
+                    sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Violacao de integridade na base de dados");
+                }
+            } else {
+                sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Erro de base de dados");
+            }
         } else {
             log.error("Unexpected error", e);
             sendError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An unexpected error occurred");
