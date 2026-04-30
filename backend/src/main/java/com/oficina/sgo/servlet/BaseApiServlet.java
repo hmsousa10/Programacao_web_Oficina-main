@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.oficina.sgo.exception.BusinessException;
 import com.oficina.sgo.exception.CapacidadeAgendaException;
 import com.oficina.sgo.exception.CapacidadeOficinaException;
@@ -31,6 +32,7 @@ public abstract class BaseApiServlet extends HttpServlet {
 
     protected static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
+            .registerModule(new ParameterNamesModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     protected void sendJson(HttpServletResponse resp, int status, Object data) throws IOException {

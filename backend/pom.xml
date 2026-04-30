@@ -59,6 +59,12 @@
 			<artifactId>jackson-datatype-jsr310</artifactId>
 			<version>${jackson.version}</version>
 		</dependency>
+		<!-- Necessário para deserializar Java Records (mapeia campos por nome do parâmetro) -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.module</groupId>
+			<artifactId>jackson-module-parameter-names</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
 
 		<!-- JWT -->
 		<dependency>
@@ -132,6 +138,8 @@
 						<arg>--add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
 						<arg>--add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
 					</compilerArgs>
+					<!-- Preserva nomes dos parâmetros no bytecode (necessário para Jackson + Records) -->
+					<parameters>true</parameters>
 				</configuration>
 			</plugin>
 			<plugin>

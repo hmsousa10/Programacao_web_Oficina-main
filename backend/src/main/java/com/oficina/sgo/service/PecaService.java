@@ -16,6 +16,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Function;
@@ -67,7 +68,7 @@ public class PecaService {
             if (designacao == null || designacao.isBlank()) {
                 throw new BusinessException("Designacao obrigatoria");
             }
-            if (request.precoUnitario() == null || request.precoUnitario().signum() <= 0) {
+            if (request.precoUnitario() == null || request.precoUnitario().compareTo(BigDecimal.ZERO) < 0) {
                 throw new BusinessException("Preco unitario invalido");
             }
             if (pecaDao.existsByReferencia(em, referencia)) {
